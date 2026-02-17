@@ -24,20 +24,22 @@ async function runSeed(request: NextRequest) {
   const prisma = new PrismaClient();
 
   try {
-    // Clear existing data
-    await prisma.userBadge.deleteMany();
-    await prisma.feedPost.deleteMany();
-    await prisma.coachNote.deleteMany();
-    await prisma.studentSkill.deleteMany();
-    await prisma.classAttendance.deleteMany();
-    await prisma.classTechnique.deleteMany();
-    await prisma.classSession.deleteMany();
-    await prisma.milestoneTechnique.deleteMany();
-    await prisma.milestone.deleteMany();
-    await prisma.technique.deleteMany();
-    await prisma.position.deleteMany();
-    await prisma.badge.deleteMany();
-    await prisma.user.deleteMany();
+    // Clear existing data (use transaction so all deletes run on same connection in order)
+    await prisma.$transaction(async (tx) => {
+      await tx.userBadge.deleteMany();
+      await tx.feedPost.deleteMany();
+      await tx.coachNote.deleteMany();
+      await tx.studentSkill.deleteMany();
+      await tx.classAttendance.deleteMany();
+      await tx.classTechnique.deleteMany();
+      await tx.classSession.deleteMany();
+      await tx.milestoneTechnique.deleteMany();
+      await tx.milestone.deleteMany();
+      await tx.technique.deleteMany();
+      await tx.position.deleteMany();
+      await tx.badge.deleteMany();
+      await tx.user.deleteMany();
+    });
 
     // Positions
     for (const pos of POSITIONS) {
