@@ -24,22 +24,10 @@ async function runSeed(request: NextRequest) {
   const prisma = new PrismaClient();
 
   try {
-    // Clear existing data (use transaction so all deletes run on same connection in order)
-    await prisma.$transaction(async (tx) => {
-      await tx.userBadge.deleteMany();
-      await tx.feedPost.deleteMany();
-      await tx.coachNote.deleteMany();
-      await tx.studentSkill.deleteMany();
-      await tx.classAttendance.deleteMany();
-      await tx.classTechnique.deleteMany();
-      await tx.classSession.deleteMany();
-      await tx.milestoneTechnique.deleteMany();
-      await tx.milestone.deleteMany();
-      await tx.technique.deleteMany();
-      await tx.position.deleteMany();
-      await tx.badge.deleteMany();
-      await tx.user.deleteMany();
-    });
+    // Clear existing data using TRUNCATE CASCADE to avoid FK deadlocks
+    await prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE "UserBadge", "FeedPost", "CoachNote", "StudentSkill", "ClassAttendance", "ClassTechnique", "ClassSession", "MilestoneTechnique", "Milestone", "Technique", "Position", "Badge", "User" CASCADE`
+    );
 
     // Positions
     for (const pos of POSITIONS) {
