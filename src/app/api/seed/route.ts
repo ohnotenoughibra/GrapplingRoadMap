@@ -5,8 +5,16 @@ import { POSITIONS, TECHNIQUES, MILESTONES, BADGES } from "@/lib/data/taxonomy";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+// Support both GET (browser address bar) and POST
+export async function GET(request: NextRequest) {
+  return runSeed(request);
+}
+
 export async function POST(request: NextRequest) {
-  // Simple secret check to prevent random hits
+  return runSeed(request);
+}
+
+async function runSeed(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const key = searchParams.get("key");
   if (key !== "roots-collective-2026") {
