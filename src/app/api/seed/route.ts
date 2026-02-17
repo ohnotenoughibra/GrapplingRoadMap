@@ -26,7 +26,7 @@ async function runSeed(request: NextRequest) {
   try {
     // Clear existing data using TRUNCATE CASCADE to avoid FK deadlocks
     await prisma.$executeRawUnsafe(
-      `TRUNCATE TABLE "UserBadge", "FeedPost", "CoachNote", "StudentSkill", "ClassAttendance", "ClassTechnique", "ClassSession", "MilestoneTechnique", "Milestone", "Technique", "Position", "Badge", "User" CASCADE`
+      `TRUNCATE TABLE "ChallengeParticipant", "Challenge", "Competition", "BeltPromotion", "TrainingLog", "ClassTemplateTechnique", "ClassTemplate", "UserBadge", "FeedPost", "CoachNote", "StudentSkill", "ClassAttendance", "ClassTechnique", "ClassSession", "MilestoneTechnique", "Milestone", "Technique", "Position", "Badge", "User" CASCADE`
     );
 
     // Positions

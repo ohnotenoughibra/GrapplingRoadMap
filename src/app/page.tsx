@@ -1,6 +1,16 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+
+  if (session?.user) {
+    const role = (session.user as any).role;
+    redirect(role === "coach" ? "/coach/dashboard" : "/student/dashboard");
+  }
+
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6">
       {/* Background texture */}
@@ -30,18 +40,18 @@ export default function Home() {
           Build skills, not just belts.
         </p>
 
-        {/* Entry points — stacked on mobile, full-width tap targets */}
+        {/* Auth entry points */}
         <div className="flex flex-col gap-3 w-full">
           <Link
-            href="/student/dashboard"
+            href="/login"
             className="group relative w-full px-6 py-5 rounded-2xl bg-gradient-to-br from-mat-800 to-mat-900 border border-mat-700/50 transition-all duration-200 active:scale-[0.98] active:border-gi-500/30"
           >
             <div className="text-left">
               <div className="font-semibold text-mat-100 mb-1 text-base">
-                I train here
+                Sign in
               </div>
               <div className="text-sm text-mat-500">
-                Track progress, connect with the team
+                Continue your journey
               </div>
             </div>
             <div className="absolute right-5 top-1/2 -translate-y-1/2 text-mat-600">
@@ -52,15 +62,15 @@ export default function Home() {
           </Link>
 
           <Link
-            href="/coach/dashboard"
+            href="/signup"
             className="group relative w-full px-6 py-5 rounded-2xl bg-gradient-to-br from-mat-800 to-mat-900 border border-mat-700/50 transition-all duration-200 active:scale-[0.98] active:border-nogi-500/30"
           >
             <div className="text-left">
               <div className="font-semibold text-mat-100 mb-1 text-base">
-                I coach here
+                Join the gym
               </div>
               <div className="text-sm text-mat-500">
-                Log classes, build curriculum, guide students
+                Create your account — student or coach
               </div>
             </div>
             <div className="absolute right-5 top-1/2 -translate-y-1/2 text-mat-600">

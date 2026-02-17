@@ -10,27 +10,35 @@ datasource db {
 // ─── Users ───────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  avatar    String?
-  role      String   @default("student") // "student" | "coach" | "admin"
-  joinedAt  DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  avatar       String?
+  role         String   @default("student") // "student" | "coach" | "admin"
+  joinedAt     DateTime @default(now())
 
   // Student fields
-  xp             Int      @default(0)
-  currentStreak  Int      @default(0)
-  longestStreak  Int      @default(0)
-  lastTrainedAt  DateTime?
+  xp            Int       @default(0)
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastTrainedAt DateTime?
+  beltRank      String    @default("white") // "white" | "blue" | "purple" | "brown" | "black"
 
   // Relations
-  classesAsCoach    ClassSession[]     @relation("CoachClasses")
-  attendances       ClassAttendance[]
-  skillProgress     StudentSkill[]
-  feedPosts         FeedPost[]
-  badges            UserBadge[]
-  coachNotes        CoachNote[]        @relation("NotesForStudent")
-  coachNotesWritten CoachNote[]        @relation("NotesFromCoach")
+  classesAsCoach       ClassSession[]       @relation("CoachClasses")
+  attendances          ClassAttendance[]
+  skillProgress        StudentSkill[]
+  feedPosts            FeedPost[]
+  badges               UserBadge[]
+  coachNotes           CoachNote[]          @relation("NotesForStudent")
+  coachNotesWritten    CoachNote[]          @relation("NotesFromCoach")
+  trainingLogs         TrainingLog[]
+  beltPromotions       BeltPromotion[]      @relation("StudentPromotions")
+  promotionsGiven      BeltPromotion[]      @relation("CoachPromotions")
+  competitions         Competition[]
+  challengesCreated    Challenge[]          @relation("ChallengeCreator")
+  challengeEntries     ChallengeParticipant[]
 }
 
 // ─── Technique Taxonomy ──────────────────────────────────────────────
@@ -56,13 +64,14 @@ model Technique {
   videoUrl    String?
   sortOrder   Int      @default(0)
 
-  position    Position @relation(fields: [positionId], references: [id])
-  positionId  String
+  position   Position @relation(fields: [positionId], references: [id])
+  positionId String
 
   // Relations
-  classItems     ClassTechnique[]
-  studentSkills  StudentSkill[]
-  milestoneItems MilestoneTechnique[]
+  classItems          ClassTechnique[]
+  studentSkills       StudentSkill[]
+  milestoneItems      MilestoneTechnique[]
+  templateTechniques  ClassTemplateTechnique[]
 }
 
 // ─── Milestones (Skill Progression) ─────────────────────────────────
@@ -80,11 +89,11 @@ model Milestone {
 }
 
 model MilestoneTechnique {
-  id           String    @id @default(cuid())
-  milestone    Milestone @relation(fields: [milestoneId], references: [id])
-  milestoneId  String
-  technique    Technique @relation(fields: [techniqueId], references: [id])
-  techniqueId  String
+  id          String    @id @default(cuid())
+  milestone   Milestone @relation(fields: [milestoneId], references: [id])
+  milestoneId String
+  technique   Technique @relation(fields: [techniqueId], references: [id])
+  techniqueId String
 
   @@unique([milestoneId, techniqueId])
 }
@@ -92,22 +101,25 @@ model MilestoneTechnique {
 // ─── Classes ─────────────────────────────────────────────────────────
 
 model ClassSession {
-  id          String   @id @default(cuid())
-  date        DateTime
-  discipline  String   // "gi" | "nogi" | "wrestling"
-  title       String?
-  notes       String?
-  warmup      String?
-  drillNotes  String?
-  sparring    Boolean  @default(true)
+  id         String   @id @default(cuid())
+  date       DateTime
+  discipline String   // "gi" | "nogi" | "wrestling"
+  title      String?
+  notes      String?
+  warmup     String?
+  drillNotes String?
+  sparring   Boolean  @default(true)
 
-  coach       User     @relation("CoachClasses", fields: [coachId], references: [id])
-  coachId     String
+  coach   User   @relation("CoachClasses", fields: [coachId], references: [id])
+  coachId String
 
-  techniques  ClassTechnique[]
-  attendees   ClassAttendance[]
+  templateId String?
+  template   ClassTemplate? @relation(fields: [templateId], references: [id])
 
-  createdAt   DateTime @default(now())
+  techniques ClassTechnique[]
+  attendees  ClassAttendance[]
+
+  createdAt DateTime @default(now())
 }
 
 model ClassTechnique {
@@ -131,19 +143,58 @@ model ClassAttendance {
   @@unique([classSessionId, userId])
 }
 
+// ─── Class Templates ─────────────────────────────────────────────────
+
+model ClassTemplate {
+  id         String   @id @default(cuid())
+  name       String
+  discipline String
+  warmup     String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  techniques ClassTemplateTechnique[]
+  classes    ClassSession[]
+}
+
+model ClassTemplateTechnique {
+  id         String        @id @default(cuid())
+  template   ClassTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId String
+  technique  Technique     @relation(fields: [techniqueId], references: [id])
+  techniqueId String
+
+  @@unique([templateId, techniqueId])
+}
+
 // ─── Student Progress ────────────────────────────────────────────────
 
 model StudentSkill {
-  id          String    @id @default(cuid())
-  user        User      @relation(fields: [userId], references: [id])
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
   userId      String
   technique   Technique @relation(fields: [techniqueId], references: [id])
   techniqueId String
-  level       String    @default("exposed") // "exposed" | "drilling" | "sparring" | "proficient"
+  level       String   @default("exposed") // "exposed" | "drilling" | "sparring" | "proficient"
   notes       String?
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime @updatedAt
 
   @@unique([userId, techniqueId])
+}
+
+// ─── Training Journal ────────────────────────────────────────────────
+
+model TrainingLog {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  date      DateTime @default(now())
+  title     String?
+  content   String
+  mood      String?  // "great" | "good" | "okay" | "tough" | "bad"
+  energy    Int?     // 1-5
+  tags      String?  // JSON array of tags
+  createdAt DateTime @default(now())
 }
 
 // ─── Coach Notes ─────────────────────────────────────────────────────
@@ -156,6 +207,75 @@ model CoachNote {
   student   User     @relation("NotesForStudent", fields: [studentId], references: [id])
   studentId String
   createdAt DateTime @default(now())
+}
+
+// ─── Belt Promotions ─────────────────────────────────────────────────
+
+model BeltPromotion {
+  id        String   @id @default(cuid())
+  student   User     @relation("StudentPromotions", fields: [studentId], references: [id])
+  studentId String
+  coach     User     @relation("CoachPromotions", fields: [coachId], references: [id])
+  coachId   String
+  fromBelt  String
+  toBelt    String
+  stripes   Int      @default(0)
+  notes     String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+// ─── Competitions ────────────────────────────────────────────────────
+
+model Competition {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  name         String
+  date         DateTime
+  location     String?
+  discipline   String   // "gi" | "nogi" | "both"
+  weightClass  String?
+  result       String?  // "gold" | "silver" | "bronze" | "loss" | "dq"
+  wins         Int      @default(0)
+  losses       Int      @default(0)
+  submissionBy String?  // technique used to win
+  submittedBy  String?  // technique lost to
+  notes        String?
+  gamePlan     String?
+  createdAt    DateTime @default(now())
+}
+
+// ─── Challenges ──────────────────────────────────────────────────────
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // "attendance" | "skill" | "custom"
+  target      Int      // e.g. 5 classes, 3 new techniques
+  startDate   DateTime
+  endDate     DateTime
+  creator     User     @relation("ChallengeCreator", fields: [creatorId], references: [id])
+  creatorId   String
+  badgeSlug   String?  // optional badge reward
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  participants ChallengeParticipant[]
+}
+
+model ChallengeParticipant {
+  id          String   @id @default(cuid())
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  challengeId String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  progress    Int      @default(0)
+  completed   Boolean  @default(false)
+  joinedAt    DateTime @default(now())
+
+  @@unique([challengeId, userId])
 }
 
 // ─── Social / Gamification ───────────────────────────────────────────
@@ -171,13 +291,13 @@ model FeedPost {
 }
 
 model Badge {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  slug        String   @unique
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
   description String
-  icon        String   // emoji or icon name
-  criteria    String   // JSON string describing how to earn
-  category    String   // "mat_time" | "skills" | "social" | "milestone"
+  icon        String // emoji or icon name
+  criteria    String // JSON string describing how to earn
+  category    String // "mat_time" | "skills" | "social" | "milestone"
 
   users UserBadge[]
 }

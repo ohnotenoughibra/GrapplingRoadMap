@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 export interface NavItem {
   label: string;
@@ -17,6 +18,8 @@ interface AppShellProps {
 
 export default function AppShell({ role, items, children }: AppShellProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const userName = session?.user?.name || (role === "coach" ? "Coach" : "Student");
 
   return (
     <div className="min-h-screen bg-mat-950 flex flex-col">
@@ -36,6 +39,12 @@ export default function AppShell({ role, items, children }: AppShellProps) {
               </div>
             </div>
           </Link>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="text-xs text-mat-500 hover:text-mat-300 transition-colors"
+          >
+            Sign out
+          </button>
         </div>
       </header>
 
@@ -80,15 +89,21 @@ export default function AppShell({ role, items, children }: AppShellProps) {
         <div className="px-4 py-4 border-t border-mat-800/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-mat-700 flex items-center justify-center text-sm font-medium text-mat-300">
-              {role === "coach" ? "C" : "S"}
+              {userName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-mat-200 truncate">
-                {role === "coach" ? "Coach" : "Student"}
+                {userName}
               </div>
               <div className="text-xs text-mat-500 capitalize">{role}</div>
             </div>
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="mt-3 text-xs text-mat-500 hover:text-mat-300 transition-colors"
+          >
+            Sign out
+          </button>
         </div>
       </aside>
 

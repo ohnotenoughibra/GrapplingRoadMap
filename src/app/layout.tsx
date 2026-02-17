@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import SessionProvider from "@/components/shared/SessionProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,7 +33,9 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="min-h-screen bg-mat-950 font-sans">{children}</body>
+      <body className="min-h-screen bg-mat-950 font-sans">
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

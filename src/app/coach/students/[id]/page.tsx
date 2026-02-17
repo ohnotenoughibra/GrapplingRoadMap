@@ -1,8 +1,18 @@
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import { SKILL_LEVEL_CONFIG, type SkillLevel } from "@/types";
+import CoachNotesSection from "./CoachNotesSection";
+import BeltPromotionSection from "./BeltPromotionSection";
 
 export const dynamic = "force-dynamic";
+
+const BELT_COLORS: Record<string, string> = {
+  white: "bg-mat-100",
+  blue: "bg-blue-500",
+  purple: "bg-purple-500",
+  brown: "bg-amber-700",
+  black: "bg-mat-900 border border-mat-500",
+};
 
 async function getStudent(id: string) {
   try {
@@ -23,9 +33,12 @@ async function getStudent(id: string) {
         },
         badges: { include: { badge: true } },
         coachNotes: {
-          where: {},
           include: { coach: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
+        },
+        beltPromotions: {
+          include: { coach: { select: { name: true } } },
+          orderBy: { date: "desc" },
         },
       },
     });
@@ -70,7 +83,10 @@ export default async function StudentDetailPage({
           {student.name.charAt(0)}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-mat-100">{student.name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-mat-100">{student.name}</h1>
+            <div className={`w-4 h-4 rounded-full ${BELT_COLORS[student.beltRank] || "bg-mat-100"}`} title={`${student.beltRank} belt`} />
+          </div>
           <div className="flex items-center gap-4 text-sm text-mat-400 mt-1">
             <span>
               Joined{" "}
@@ -81,6 +97,7 @@ export default async function StudentDetailPage({
             </span>
             <span>{student.attendances.length} classes</span>
             <span>{student.xp} XP</span>
+            <span className="capitalize">{student.beltRank} belt</span>
             {student.currentStreak > 0 && (
               <span className="text-nogi-400 streak-flame">
                 {student.currentStreak}d streak
@@ -108,62 +125,90 @@ export default async function StudentDetailPage({
       {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Skills by position */}
-        <div className="lg:col-span-2 card p-6">
-          <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider mb-4">
-            Skill Breakdown
-          </h2>
-          <div className="space-y-4">
-            {Object.entries(skillsByPosition).map(([position, skills]) => (
-              <div key={position}>
-                <div className="text-xs font-medium text-mat-500 uppercase tracking-wider mb-2">
-                  {position}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {skills.map((sp) => {
-                    const config = SKILL_LEVEL_CONFIG[sp.level as SkillLevel];
-                    return (
-                      <div
-                        key={sp.id}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
-                          sp.level === "proficient"
-                            ? "skill-proficient"
-                            : sp.level === "sparring"
-                              ? "skill-sparring"
-                              : sp.level === "drilling"
-                                ? "skill-drilling"
-                                : "skill-exposed"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                              sp.technique.discipline === "gi"
-                                ? "bg-gi-500"
-                                : sp.technique.discipline === "nogi"
-                                  ? "bg-nogi-500"
-                                  : sp.technique.discipline === "wrestling"
-                                    ? "bg-wrestling-500"
-                                    : "bg-mat-400"
-                            }`}
-                          />
-                          <span className="text-sm text-mat-300">
-                            {sp.technique.name}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="card p-6">
+            <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider mb-4">
+              Skill Breakdown
+            </h2>
+            <div className="space-y-4">
+              {Object.entries(skillsByPosition).map(([position, skills]) => (
+                <div key={position}>
+                  <div className="text-xs font-medium text-mat-500 uppercase tracking-wider mb-2">
+                    {position}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {skills.map((sp) => {
+                      const config = SKILL_LEVEL_CONFIG[sp.level as SkillLevel];
+                      return (
+                        <div
+                          key={sp.id}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                            sp.level === "proficient"
+                              ? "skill-proficient"
+                              : sp.level === "sparring"
+                                ? "skill-sparring"
+                                : sp.level === "drilling"
+                                  ? "skill-drilling"
+                                  : "skill-exposed"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                sp.technique.discipline === "gi"
+                                  ? "bg-gi-500"
+                                  : sp.technique.discipline === "nogi"
+                                    ? "bg-nogi-500"
+                                    : sp.technique.discipline === "wrestling"
+                                      ? "bg-wrestling-500"
+                                      : "bg-mat-400"
+                              }`}
+                            />
+                            <span className="text-sm text-mat-300">
+                              {sp.technique.name}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-medium ${config.color}`}>
+                            {config.label}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-medium ${config.color}`}>
-                          {config.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+
+          {/* Coach Notes */}
+          <CoachNotesSection
+            studentId={student.id}
+            initialNotes={student.coachNotes.map((n) => ({
+              id: n.id,
+              content: n.content,
+              coachName: n.coach.name,
+              createdAt: n.createdAt.toISOString(),
+            }))}
+          />
         </div>
 
-        {/* Sidebar: badges + recent classes */}
+        {/* Sidebar */}
         <div className="space-y-6">
+          {/* Belt Promotions */}
+          <BeltPromotionSection
+            studentId={student.id}
+            currentBelt={student.beltRank}
+            promotions={student.beltPromotions.map((p) => ({
+              id: p.id,
+              fromBelt: p.fromBelt,
+              toBelt: p.toBelt,
+              stripes: p.stripes,
+              notes: p.notes,
+              coachName: p.coach.name,
+              date: p.date.toISOString(),
+            }))}
+          />
+
           {/* Badges */}
           <div className="card p-5">
             <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider mb-3">

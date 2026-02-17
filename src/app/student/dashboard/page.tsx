@@ -35,14 +35,25 @@ interface DashboardData {
   badges: { badge: { name: string; icon: string } }[];
 }
 
+interface Recommendation {
+  type: string;
+  title: string;
+  description: string;
+  techniques?: Array<{ name: string; position: string }>;
+}
+
 export default function StudentDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [recs, setRecs] = useState<Recommendation[]>([]);
 
   useEffect(() => {
-    // For MVP, use first student
     fetch("/api/student/dashboard")
       .then((r) => r.json())
       .then(setData);
+    fetch("/api/ai/recommendations")
+      .then((r) => r.json())
+      .then((d) => setRecs((d.recommendations || []).slice(0, 2)))
+      .catch(() => {});
   }, []);
 
   if (!data) {
@@ -66,6 +77,17 @@ export default function StudentDashboard() {
           (data.currentMilestone.progress / data.currentMilestone.total) * 100
         )
       : 0;
+
+  const typeIcon = (t: string) => {
+    switch (t) {
+      case "milestone_close": return "🎯";
+      case "milestone_new": return "🧭";
+      case "weak_position": return "💡";
+      case "review": return "📖";
+      case "streak": return "🔥";
+      default: return "⚡";
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -104,7 +126,7 @@ export default function StudentDashboard() {
             {data.user.currentStreak === 0 && "0"}
           </div>
           <div className="text-xs text-mat-500 mt-1">
-            day{data.user.currentStreak !== 1 ? "s" : ""} · best:{" "}
+            day{data.user.currentStreak !== 1 ? "s" : ""} &middot; best:{" "}
             {data.user.longestStreak}
           </div>
         </div>
@@ -195,40 +217,68 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Badges */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
-              Badges
-            </h2>
-            <Link
-              href="/student/badges"
-              className="text-xs text-gi-400 hover:text-gi-300"
-            >
-              View all
-            </Link>
+        {/* Right column: Badges + AI recs */}
+        <div className="space-y-6">
+          {/* Badges */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
+                Badges
+              </h2>
+              <Link
+                href="/student/badges"
+                className="text-xs text-gi-400 hover:text-gi-300"
+              >
+                View all
+              </Link>
+            </div>
+
+            {data.badges.length === 0 ? (
+              <div className="text-center py-8 text-mat-500 text-sm">
+                <p className="mb-1">No badges yet.</p>
+                <p className="text-mat-600 text-xs">
+                  Keep training — they&apos;ll come.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {data.badges.map((ub) => (
+                  <div
+                    key={ub.badge.name}
+                    className="flex flex-col items-center p-3 rounded-lg bg-mat-800/30"
+                  >
+                    <span className="text-2xl mb-1">{ub.badge.icon}</span>
+                    <span className="text-[10px] text-mat-400 text-center leading-tight">
+                      {ub.badge.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {data.badges.length === 0 ? (
-            <div className="text-center py-8 text-mat-500 text-sm">
-              <p className="mb-1">No badges yet.</p>
-              <p className="text-mat-600 text-xs">
-                Keep training — they&apos;ll come.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {data.badges.map((ub) => (
-                <div
-                  key={ub.badge.name}
-                  className="flex flex-col items-center p-3 rounded-lg bg-mat-800/30"
-                >
-                  <span className="text-2xl mb-1">{ub.badge.icon}</span>
-                  <span className="text-[10px] text-mat-400 text-center leading-tight">
-                    {ub.badge.name}
-                  </span>
-                </div>
-              ))}
+          {/* AI Recommendations preview */}
+          {recs.length > 0 && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
+                  Focus This Week
+                </h2>
+                <Link href="/student/recommendations" className="text-xs text-gi-400 hover:text-gi-300">
+                  View all
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {recs.map((rec, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <span className="text-lg">{typeIcon(rec.type)}</span>
+                    <div>
+                      <div className="text-sm font-medium text-mat-200">{rec.title}</div>
+                      <p className="text-xs text-mat-500 mt-0.5 line-clamp-2">{rec.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -279,7 +329,7 @@ export default function StudentDashboard() {
                       month: "short",
                       day: "numeric",
                     })}{" "}
-                    · {cls.techniques.length} techniques
+                    &middot; {cls.techniques.length} techniques
                   </div>
                 </div>
               </div>
