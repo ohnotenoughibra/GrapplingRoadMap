@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
 
+export const dynamic = "force-dynamic";
+
 async function getStudents() {
   const students = await prisma.user.findMany({
     where: { role: "student" },
