@@ -1,33 +1,39 @@
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
-import { SKILL_LEVEL_CONFIG, MILESTONE_CONFIG, type SkillLevel, type MilestoneSlug } from "@/types";
+import { SKILL_LEVEL_CONFIG, type SkillLevel } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 async function getStudent(id: string) {
-  const student = await prisma.user.findUnique({
-    where: { id },
-    include: {
-      attendances: {
-        include: {
-          classSession: {
-            include: { techniques: { include: { technique: true } } },
+  try {
+    const student = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        attendances: {
+          include: {
+            classSession: {
+              include: { techniques: { include: { technique: true } } },
+            },
           },
+          orderBy: { classSession: { date: "desc" } },
         },
-        orderBy: { classSession: { date: "desc" } },
+        skillProgress: {
+          include: { technique: { include: { position: true } } },
+          orderBy: { technique: { position: { sortOrder: "asc" } } },
+        },
+        badges: { include: { badge: true } },
+        coachNotes: {
+          where: {},
+          include: { coach: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       },
-      skillProgress: {
-        include: { technique: { include: { position: true } } },
-        orderBy: { technique: { position: { sortOrder: "asc" } } },
-      },
-      badges: { include: { badge: true } },
-      coachNotes: {
-        where: {},
-        include: { coach: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+    });
 
-  return student;
+    return student;
+  } catch {
+    return null;
+  }
 }
 
 export default async function StudentDetailPage({

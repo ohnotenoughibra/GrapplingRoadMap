@@ -4,35 +4,38 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // For MVP, use first student
-  const student = await prisma.user.findFirst({
-    where: { role: "student" },
-    include: {
-      badges: { include: { badge: true } },
-    },
-  });
+  try {
+    const student = await prisma.user.findFirst({
+      where: { role: "student" },
+      include: {
+        badges: { include: { badge: true } },
+      },
+    });
 
-  const earnedBadgeIds = new Set(
-    (student?.badges ?? []).map((ub) => ub.badgeId)
-  );
+    const earnedBadgeIds = new Set(
+      (student?.badges ?? []).map((ub) => ub.badgeId)
+    );
 
-  const allBadges = await prisma.badge.findMany({
-    orderBy: { category: "asc" },
-  });
+    const allBadges = await prisma.badge.findMany({
+      orderBy: { category: "asc" },
+    });
 
-  const badges = allBadges.map((b) => {
-    const userBadge = student?.badges.find((ub) => ub.badgeId === b.id);
-    return {
-      id: b.id,
-      name: b.name,
-      slug: b.slug,
-      description: b.description,
-      icon: b.icon,
-      category: b.category,
-      earned: earnedBadgeIds.has(b.id),
-      earnedAt: userBadge?.earnedAt?.toISOString() ?? null,
-    };
-  });
+    const badges = allBadges.map((b) => {
+      const userBadge = student?.badges.find((ub) => ub.badgeId === b.id);
+      return {
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        description: b.description,
+        icon: b.icon,
+        category: b.category,
+        earned: earnedBadgeIds.has(b.id),
+        earnedAt: userBadge?.earnedAt?.toISOString() ?? null,
+      };
+    });
 
-  return NextResponse.json({ badges });
+    return NextResponse.json({ badges });
+  } catch {
+    return NextResponse.json({ badges: [] });
+  }
 }

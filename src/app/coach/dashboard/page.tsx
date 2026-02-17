@@ -4,35 +4,44 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const [totalClasses, totalStudents, totalTechniques, recentClasses] =
-    await Promise.all([
-      prisma.classSession.count(),
-      prisma.user.count({ where: { role: "student" } }),
-      prisma.technique.count(),
-      prisma.classSession.findMany({
-        take: 5,
-        orderBy: { date: "desc" },
-        include: {
-          techniques: { include: { technique: true } },
-          attendees: true,
-          coach: true,
-        },
-      }),
-    ]);
+  try {
+    const [totalClasses, totalStudents, totalTechniques, recentClasses] =
+      await Promise.all([
+        prisma.classSession.count(),
+        prisma.user.count({ where: { role: "student" } }),
+        prisma.technique.count(),
+        prisma.classSession.findMany({
+          take: 5,
+          orderBy: { date: "desc" },
+          include: {
+            techniques: { include: { technique: true } },
+            attendees: true,
+            coach: true,
+          },
+        }),
+      ]);
 
-  // Coverage: how many unique techniques have been taught
-  const taughtTechniques = await prisma.classTechnique.findMany({
-    select: { techniqueId: true },
-    distinct: ["techniqueId"],
-  });
+    const taughtTechniques = await prisma.classTechnique.findMany({
+      select: { techniqueId: true },
+      distinct: ["techniqueId"],
+    });
 
-  return {
-    totalClasses,
-    totalStudents,
-    totalTechniques,
-    taughtCount: taughtTechniques.length,
-    recentClasses,
-  };
+    return {
+      totalClasses,
+      totalStudents,
+      totalTechniques,
+      taughtCount: taughtTechniques.length,
+      recentClasses,
+    };
+  } catch {
+    return {
+      totalClasses: 0,
+      totalStudents: 0,
+      totalTechniques: 0,
+      taughtCount: 0,
+      recentClasses: [] as never[],
+    };
+  }
 }
 
 export default async function CoachDashboard() {

@@ -4,23 +4,27 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 async function getStudents() {
-  const students = await prisma.user.findMany({
-    where: { role: "student" },
-    include: {
-      attendances: true,
-      skillProgress: true,
-      badges: { include: { badge: true } },
-    },
-    orderBy: { name: "asc" },
-  });
+  try {
+    const students = await prisma.user.findMany({
+      where: { role: "student" },
+      include: {
+        attendances: true,
+        skillProgress: true,
+        badges: { include: { badge: true } },
+      },
+      orderBy: { name: "asc" },
+    });
 
-  return students.map((s) => ({
-    ...s,
-    totalClasses: s.attendances.length,
-    proficientSkills: s.skillProgress.filter((sp) => sp.level === "proficient").length,
-    totalSkills: s.skillProgress.length,
-    badgeCount: s.badges.length,
-  }));
+    return students.map((s) => ({
+      ...s,
+      totalClasses: s.attendances.length,
+      proficientSkills: s.skillProgress.filter((sp) => sp.level === "proficient").length,
+      totalSkills: s.skillProgress.length,
+      badgeCount: s.badges.length,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export default async function StudentsPage() {
