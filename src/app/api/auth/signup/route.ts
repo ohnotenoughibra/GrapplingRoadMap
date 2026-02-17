@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Coaches need invite code
-    if (role === "coach" && inviteCode !== "roots-coach-2026") {
+    const coachCode = process.env.COACH_INVITE_CODE || "roots-coach-2026";
+    if (role === "coach" && inviteCode !== coachCode) {
       return NextResponse.json({ error: "Invalid coach invite code" }, { status: 403 });
     }
 
