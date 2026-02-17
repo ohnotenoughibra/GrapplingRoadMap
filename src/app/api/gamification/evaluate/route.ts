@@ -20,8 +20,6 @@ export async function POST(request: NextRequest) {
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const earnedBadgeSlugs = new Set(user.badges.map((ub) => ub.badge?.slug).filter(Boolean));
-    // Refetch with badge data
     const userBadges = await prisma.userBadge.findMany({
       where: { userId },
       include: { badge: true },
