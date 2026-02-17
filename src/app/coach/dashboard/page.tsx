@@ -43,36 +43,36 @@ export default async function CoachDashboard() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-mat-100">Coach Dashboard</h1>
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-xl lg:text-2xl font-bold text-mat-100">Coach Dashboard</h1>
         <p className="text-mat-400 text-sm mt-1">
           Overview of your gym&apos;s grappling program
         </p>
       </div>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+        <div className="card p-4 lg:p-5">
+          <div className="text-mat-500 text-[10px] lg:text-xs font-medium uppercase tracking-wider mb-1.5 lg:mb-2">
             Classes Logged
           </div>
-          <div className="text-3xl font-bold text-mat-100">
+          <div className="text-2xl lg:text-3xl font-bold text-mat-100">
             {stats.totalClasses}
           </div>
         </div>
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
+        <div className="card p-4 lg:p-5">
+          <div className="text-mat-500 text-[10px] lg:text-xs font-medium uppercase tracking-wider mb-1.5 lg:mb-2">
             Active Students
           </div>
-          <div className="text-3xl font-bold text-mat-100">
+          <div className="text-2xl lg:text-3xl font-bold text-mat-100">
             {stats.totalStudents}
           </div>
         </div>
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
+        <div className="card p-4 lg:p-5">
+          <div className="text-mat-500 text-[10px] lg:text-xs font-medium uppercase tracking-wider mb-1.5 lg:mb-2">
             Curriculum Coverage
           </div>
-          <div className="text-3xl font-bold text-mat-100">
+          <div className="text-2xl lg:text-3xl font-bold text-mat-100">
             {coveragePercent}%
           </div>
           <div className="mt-2 xp-bar">
@@ -82,11 +82,11 @@ export default async function CoachDashboard() {
             />
           </div>
         </div>
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
+        <div className="card p-4 lg:p-5">
+          <div className="text-mat-500 text-[10px] lg:text-xs font-medium uppercase tracking-wider mb-1.5 lg:mb-2">
             Techniques in System
           </div>
-          <div className="text-3xl font-bold text-mat-100">
+          <div className="text-2xl lg:text-3xl font-bold text-mat-100">
             {stats.totalTechniques}
           </div>
         </div>

@@ -35,20 +35,20 @@ export default function CurriculumPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-mat-100">Curriculum Map</h1>
-          <p className="text-mat-400 text-sm mt-1">
-            The roadmap. What skills to develop at each stage of the journey.
-          </p>
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-xl lg:text-2xl font-bold text-mat-100">Curriculum Map</h1>
+        <p className="text-mat-400 text-sm mt-1">
+          What skills to develop at each stage.
+        </p>
+        <div className="mt-3">
+          <DisciplineToggle selected={discipline} onChange={setDiscipline} />
         </div>
-        <DisciplineToggle selected={discipline} onChange={setDiscipline} />
       </div>
 
       {/* Journey timeline */}
       <div className="relative">
         {/* Vertical line */}
-        <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-gi-500/50 via-nogi-500/50 to-wrestling-500/50" />
+        <div className="absolute left-4 lg:left-6 top-0 bottom-0 w-px bg-gradient-to-b from-gi-500/50 via-nogi-500/50 to-wrestling-500/50" />
 
         <div className="space-y-6">
           {milestones.map((milestone) => {
@@ -65,9 +65,9 @@ export default function CurriculumPage() {
             );
 
             return (
-              <div key={milestone.slug} className="relative pl-16">
+              <div key={milestone.slug} className="relative pl-10 lg:pl-16">
                 {/* Timeline node */}
-                <div className="absolute left-3.5 w-5 h-5 rounded-full bg-mat-900 border-2 border-gi-500/50 flex items-center justify-center">
+                <div className="absolute left-1.5 lg:left-3.5 w-5 h-5 rounded-full bg-mat-900 border-2 border-gi-500/50 flex items-center justify-center">
                   <div className="w-2 h-2 rounded-full bg-gi-400" />
                 </div>
 
@@ -79,7 +79,7 @@ export default function CurriculumPage() {
                         isExpanded ? "" : milestone.slug
                       )
                     }
-                    className="w-full text-left p-6 hover:bg-mat-800/20 transition-colors"
+                    className="w-full text-left p-4 lg:p-6 active:bg-mat-800/20 transition-colors"
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -121,8 +121,8 @@ export default function CurriculumPage() {
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t border-mat-800/50 p-6">
-                      <div className="space-y-5">
+                    <div className="border-t border-mat-800/50 p-4 lg:p-6">
+                      <div className="space-y-4 lg:space-y-5">
                         {Object.entries(techniquesByPosition).map(
                           ([position, techs]) => (
                             <div key={position}>

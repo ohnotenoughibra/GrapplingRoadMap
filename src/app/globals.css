@@ -8,24 +8,52 @@
   html {
     @apply antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-mat-950 text-mat-100;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
   }
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    @apply w-1.5;
+  /* iOS safe area for bottom nav */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+
+  /* Prevent pull-to-refresh on mobile */
+  body {
+    overscroll-behavior-y: contain;
   }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-mat-700 rounded-full;
+
+  /* Prevent text selection on nav elements */
+  nav a, button {
+    -webkit-user-select: none;
+    user-select: none;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-mat-600;
+
+  /* Touch targets minimum 44px */
+  @media (pointer: coarse) {
+    button, a {
+      min-height: 44px;
+    }
+  }
+
+  /* Custom scrollbar — desktop only */
+  @media (pointer: fine) {
+    ::-webkit-scrollbar {
+      @apply w-1.5;
+    }
+    ::-webkit-scrollbar-track {
+      @apply bg-transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      @apply bg-mat-700 rounded-full;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      @apply bg-mat-600;
+    }
   }
 }
 
@@ -71,20 +99,23 @@
   .heat-4 { @apply bg-emerald-600/60; }
   .heat-5 { @apply bg-emerald-500/70; }
 
-  /* Button styles */
+  /* Button styles — min 44px tap targets on mobile */
   .btn-primary {
-    @apply px-4 py-2 rounded-lg bg-gi-600 text-white font-medium text-sm
-           transition-all duration-200 hover:bg-gi-500 active:scale-[0.98]
-           focus:outline-none focus:ring-2 focus:ring-gi-500/50;
+    @apply px-5 py-3 rounded-xl bg-gi-600 text-white font-medium text-sm
+           transition-all duration-200 hover:bg-gi-500 active:scale-[0.97] active:bg-gi-500
+           focus:outline-none focus:ring-2 focus:ring-gi-500/50
+           lg:px-4 lg:py-2 lg:rounded-lg;
   }
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg bg-mat-800 text-mat-200 font-medium text-sm border border-mat-700/50
-           transition-all duration-200 hover:bg-mat-700 active:scale-[0.98]
-           focus:outline-none focus:ring-2 focus:ring-mat-500/50;
+    @apply px-5 py-3 rounded-xl bg-mat-800 text-mat-200 font-medium text-sm border border-mat-700/50
+           transition-all duration-200 hover:bg-mat-700 active:scale-[0.97] active:bg-mat-700
+           focus:outline-none focus:ring-2 focus:ring-mat-500/50
+           lg:px-4 lg:py-2 lg:rounded-lg;
   }
   .btn-ghost {
-    @apply px-4 py-2 rounded-lg text-mat-300 font-medium text-sm
-           transition-all duration-200 hover:bg-mat-800/50 active:scale-[0.98];
+    @apply px-5 py-3 rounded-xl text-mat-300 font-medium text-sm
+           transition-all duration-200 hover:bg-mat-800/50 active:scale-[0.97]
+           lg:px-4 lg:py-2 lg:rounded-lg;
   }
 
   /* XP bar */

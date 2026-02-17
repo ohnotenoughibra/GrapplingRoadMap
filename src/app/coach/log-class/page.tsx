@@ -103,10 +103,10 @@ export default function LogClassPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-mat-100">Log a Class</h1>
+      <div className="mb-5 lg:mb-8">
+        <h1 className="text-xl lg:text-2xl font-bold text-mat-100">Log a Class</h1>
         <p className="text-mat-400 text-sm mt-1">
-          Record what was covered today. Takes 30 seconds.
+          Record what was covered. Takes 30 seconds.
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default function LogClassPage() {
       )}
 
       {/* Class details */}
-      <div className="card p-6 mb-6">
+      <div className="card p-4 lg:p-6 mb-4 lg:mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-xs font-medium text-mat-400 mb-1.5">
@@ -128,7 +128,7 @@ export default function LogClassPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50 focus:border-gi-500/50"
+              className="w-full px-3 py-3 lg:py-2 rounded-xl lg:rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50 focus:border-gi-500/50"
             />
           </div>
           <div>
@@ -274,12 +274,12 @@ export default function LogClassPage() {
         </div>
       </div>
 
-      {/* Submit */}
-      <div className="mt-6 flex justify-end">
+      {/* Submit — sticky on mobile */}
+      <div className="sticky bottom-20 lg:static mt-4 lg:mt-6 flex justify-end">
         <button
           onClick={handleSubmit}
           disabled={selectedTechniques.length === 0 || saving}
-          className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-primary w-full lg:w-auto disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-mat-950/80 lg:shadow-none"
         >
           {saving ? "Logging..." : `Log Class (${selectedTechniques.length} techniques)`}
         </button>
