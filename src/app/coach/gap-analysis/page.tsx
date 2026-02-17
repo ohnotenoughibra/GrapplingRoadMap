@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import DisciplineToggle from "@/components/shared/DisciplineToggle";
+import { Discipline } from "@/types";
 
 interface GapData {
   neverTaught: Array<{ id: string; name: string; position: string; category: string; discipline: string }>;
@@ -14,7 +15,7 @@ interface GapData {
 export default function GapAnalysisPage() {
   const [data, setData] = useState<GapData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [discipline, setDiscipline] = useState("all");
+  const [discipline, setDiscipline] = useState<Discipline | "all">("all");
   const [tab, setTab] = useState<"coverage" | "never" | "stale" | "weak">("coverage");
 
   useEffect(() => {
