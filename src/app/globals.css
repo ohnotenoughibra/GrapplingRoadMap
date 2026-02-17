@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  html {
+    @apply antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    @apply bg-mat-950 text-mat-100;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-mat-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-mat-600;
+  }
+}
+
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-mat-900/50 border border-mat-800/50 rounded-xl backdrop-blur-sm;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-mat-700/50 hover:bg-mat-900/70;
+  }
+
+  /* Discipline badges */
+  .badge-gi {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gi-500/10 text-gi-400 border border-gi-500/20;
+  }
+  .badge-nogi {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-nogi-500/10 text-nogi-400 border border-nogi-500/20;
+  }
+  .badge-wrestling {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-wrestling-500/10 text-wrestling-400 border border-wrestling-500/20;
+  }
+
+  /* Skill level indicators */
+  .skill-exposed {
+    @apply bg-mat-600/30 border-mat-500/30;
+  }
+  .skill-drilling {
+    @apply bg-yellow-500/10 border-yellow-500/30;
+  }
+  .skill-sparring {
+    @apply bg-gi-500/10 border-gi-500/30;
+  }
+  .skill-proficient {
+    @apply bg-green-500/10 border-green-500/30;
+  }
+
+  /* Heatmap cells */
+  .heat-0 { @apply bg-mat-800/30; }
+  .heat-1 { @apply bg-emerald-900/30; }
+  .heat-2 { @apply bg-emerald-800/40; }
+  .heat-3 { @apply bg-emerald-700/50; }
+  .heat-4 { @apply bg-emerald-600/60; }
+  .heat-5 { @apply bg-emerald-500/70; }
+
+  /* Button styles */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg bg-gi-600 text-white font-medium text-sm
+           transition-all duration-200 hover:bg-gi-500 active:scale-[0.98]
+           focus:outline-none focus:ring-2 focus:ring-gi-500/50;
+  }
+  .btn-secondary {
+    @apply px-4 py-2 rounded-lg bg-mat-800 text-mat-200 font-medium text-sm border border-mat-700/50
+           transition-all duration-200 hover:bg-mat-700 active:scale-[0.98]
+           focus:outline-none focus:ring-2 focus:ring-mat-500/50;
+  }
+  .btn-ghost {
+    @apply px-4 py-2 rounded-lg text-mat-300 font-medium text-sm
+           transition-all duration-200 hover:bg-mat-800/50 active:scale-[0.98];
+  }
+
+  /* XP bar */
+  .xp-bar {
+    @apply h-2 rounded-full bg-mat-800 overflow-hidden;
+  }
+  .xp-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-gi-500 to-nogi-500 transition-all duration-500;
+  }
+
+  /* Streak flame animation */
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  .streak-flame {
+    animation: flicker 1.5s ease-in-out infinite;
+  }
+}

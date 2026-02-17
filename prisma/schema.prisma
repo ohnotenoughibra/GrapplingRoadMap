@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ─── Users ───────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatar    String?
+  role      String   @default("student") // "student" | "coach" | "admin"
+  joinedAt  DateTime @default(now())
+
+  // Student fields
+  xp             Int      @default(0)
+  currentStreak  Int      @default(0)
+  longestStreak  Int      @default(0)
+  lastTrainedAt  DateTime?
+
+  // Relations
+  classesAsCoach    ClassSession[]     @relation("CoachClasses")
+  attendances       ClassAttendance[]
+  skillProgress     StudentSkill[]
+  feedPosts         FeedPost[]
+  badges            UserBadge[]
+  coachNotes        CoachNote[]        @relation("NotesForStudent")
+  coachNotesWritten CoachNote[]        @relation("NotesFromCoach")
+}
+
+// ─── Technique Taxonomy ──────────────────────────────────────────────
+
+model Position {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+
+  techniques Technique[]
+}
+
+model Technique {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  discipline  String   // "gi" | "nogi" | "wrestling" | "all"
+  category    String   // "submission" | "sweep" | "pass" | "escape" | "takedown" | "throw" | "transition" | "control" | "defense"
+  difficulty  String   @default("fundamental") // "fundamental" | "intermediate" | "advanced"
+  videoUrl    String?
+  sortOrder   Int      @default(0)
+
+  position    Position @relation(fields: [positionId], references: [id])
+  positionId  String
+
+  // Relations
+  classItems     ClassTechnique[]
+  studentSkills  StudentSkill[]
+  milestoneItems MilestoneTechnique[]
+}
+
+// ─── Milestones (Skill Progression) ─────────────────────────────────
+
+model Milestone {
+  id          String   @id @default(cuid())
+  name        String   // "Explorer" | "Traveler" | "Navigator" | "Guide"
+  slug        String   @unique
+  description String?
+  monthsMin   Int      // 0, 6, 12, 24
+  monthsMax   Int?     // 6, 12, 24, null
+  sortOrder   Int      @default(0)
+
+  techniques MilestoneTechnique[]
+}
+
+model MilestoneTechnique {
+  id           String    @id @default(cuid())
+  milestone    Milestone @relation(fields: [milestoneId], references: [id])
+  milestoneId  String
+  technique    Technique @relation(fields: [techniqueId], references: [id])
+  techniqueId  String
+
+  @@unique([milestoneId, techniqueId])
+}
+
+// ─── Classes ─────────────────────────────────────────────────────────
+
+model ClassSession {
+  id          String   @id @default(cuid())
+  date        DateTime
+  discipline  String   // "gi" | "nogi" | "wrestling"
+  title       String?
+  notes       String?
+  warmup      String?
+  drillNotes  String?
+  sparring    Boolean  @default(true)
+
+  coach       User     @relation("CoachClasses", fields: [coachId], references: [id])
+  coachId     String
+
+  techniques  ClassTechnique[]
+  attendees   ClassAttendance[]
+
+  createdAt   DateTime @default(now())
+}
+
+model ClassTechnique {
+  id             String       @id @default(cuid())
+  classSession   ClassSession @relation(fields: [classSessionId], references: [id])
+  classSessionId String
+  technique      Technique    @relation(fields: [techniqueId], references: [id])
+  techniqueId    String
+
+  @@unique([classSessionId, techniqueId])
+}
+
+model ClassAttendance {
+  id             String       @id @default(cuid())
+  classSession   ClassSession @relation(fields: [classSessionId], references: [id])
+  classSessionId String
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String
+  checkedIn      Boolean      @default(true)
+
+  @@unique([classSessionId, userId])
+}
+
+// ─── Student Progress ────────────────────────────────────────────────
+
+model StudentSkill {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  technique   Technique @relation(fields: [techniqueId], references: [id])
+  techniqueId String
+  level       String    @default("exposed") // "exposed" | "drilling" | "sparring" | "proficient"
+  notes       String?
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, techniqueId])
+}
+
+// ─── Coach Notes ─────────────────────────────────────────────────────
+
+model CoachNote {
+  id        String   @id @default(cuid())
+  content   String
+  coach     User     @relation("NotesFromCoach", fields: [coachId], references: [id])
+  coachId   String
+  student   User     @relation("NotesForStudent", fields: [studentId], references: [id])
+  studentId String
+  createdAt DateTime @default(now())
+}
+
+// ─── Social / Gamification ───────────────────────────────────────────
+
+model FeedPost {
+  id        String   @id @default(cuid())
+  type      String   // "checkin" | "milestone" | "badge" | "note" | "challenge"
+  content   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  metadata  String?  // JSON string for extra data
+  createdAt DateTime @default(now())
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String
+  icon        String   // emoji or icon name
+  criteria    String   // JSON string describing how to earn
+  category    String   // "mat_time" | "skills" | "social" | "milestone"
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
