@@ -4,6 +4,29 @@ import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    let userId: string;
+    if (!user) {
+      const student = await prisma.user.findFirst({ where: { role: "student" } });
+      if (!student) return NextResponse.json({ skills: [] });
+      userId = student.id;
+    } else {
+      userId = user.id;
+    }
+
+    const skills = await prisma.studentSkill.findMany({
+      where: { userId },
+      select: { techniqueId: true, level: true },
+    });
+
+    return NextResponse.json({ skills });
+  } catch {
+    return NextResponse.json({ skills: [] });
+  }
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const user = await getCurrentUser();

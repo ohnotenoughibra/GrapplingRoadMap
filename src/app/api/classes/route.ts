@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, discipline, title, notes, techniqueIds } = body;
+    const { date, discipline, title, notes, techniqueIds, attendeeIds } = body;
 
     let coach = await prisma.user.findFirst({ where: { role: "coach" } });
     if (!coach) {
@@ -48,11 +48,32 @@ export async function POST(request: NextRequest) {
             techniqueId: id,
           })),
         },
+        attendees: attendeeIds?.length
+          ? {
+              create: (attendeeIds as string[]).map((userId: string) => ({
+                userId,
+              })),
+            }
+          : undefined,
       },
       include: {
         techniques: { include: { technique: true } },
+        attendees: { include: { user: true } },
       },
     });
+
+    // Auto-update student skill progress for attendees
+    if (attendeeIds?.length && techniqueIds?.length) {
+      for (const studentId of attendeeIds as string[]) {
+        for (const techId of techniqueIds as string[]) {
+          await prisma.studentSkill.upsert({
+            where: { userId_techniqueId: { userId: studentId, techniqueId: techId } },
+            update: { updatedAt: new Date() },
+            create: { userId: studentId, techniqueId: techId, level: "exposed" },
+          });
+        }
+      }
+    }
 
     return NextResponse.json(classSession, { status: 201 });
   } catch {

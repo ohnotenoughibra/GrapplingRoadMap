@@ -20,6 +20,12 @@ interface Technique {
   position: Position;
 }
 
+interface Student {
+  id: string;
+  name: string;
+  beltRank: string;
+}
+
 export default function LogClassPage() {
   const [discipline, setDiscipline] = useState<Discipline>("nogi");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -32,8 +38,10 @@ export default function LogClassPage() {
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
-  // Fetch techniques
+  // Fetch techniques and students
   useEffect(() => {
     fetch("/api/techniques")
       .then((r) => r.json())
@@ -41,6 +49,12 @@ export default function LogClassPage() {
         setTechniques(data.techniques || []);
         setPositions(data.positions || []);
       });
+    fetch("/api/coach/attendance")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.students) setStudents(data.students);
+      })
+      .catch(() => {});
   }, []);
 
   // Filter techniques
@@ -85,12 +99,14 @@ export default function LogClassPage() {
           title: title || undefined,
           notes: notes || undefined,
           techniqueIds: selectedTechniques,
+          attendeeIds: selectedStudents.length > 0 ? selectedStudents : undefined,
         }),
       });
 
       if (res.ok) {
         setSaved(true);
         setSelectedTechniques([]);
+        setSelectedStudents([]);
         setTitle("");
         setNotes("");
         setTimeout(() => setSaved(false), 3000);
@@ -171,6 +187,66 @@ export default function LogClassPage() {
           />
         </div>
       </div>
+
+      {/* Attendance */}
+      {students.length > 0 && (
+        <div className="card p-4 lg:p-6 mb-4 lg:mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
+              Who Trained?
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-mat-500">{selectedStudents.length} present</span>
+              <button
+                onClick={() =>
+                  setSelectedStudents(
+                    selectedStudents.length === students.length
+                      ? []
+                      : students.map((s) => s.id)
+                  )
+                }
+                className="text-xs text-gi-400 hover:text-gi-300"
+              >
+                {selectedStudents.length === students.length ? "Clear" : "All"}
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {students.map((s) => {
+              const isSelected = selectedStudents.includes(s.id);
+              const beltColors: Record<string, string> = {
+                white: "border-mat-300",
+                blue: "border-blue-500",
+                purple: "border-purple-500",
+                brown: "border-amber-700",
+                black: "border-mat-100",
+              };
+              return (
+                <button
+                  key={s.id}
+                  onClick={() =>
+                    setSelectedStudents(
+                      isSelected
+                        ? selectedStudents.filter((id) => id !== s.id)
+                        : [...selectedStudents, s.id]
+                    )
+                  }
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isSelected
+                      ? "bg-gi-500/10 text-gi-400 border border-gi-500/30"
+                      : "bg-mat-800/30 text-mat-400 border border-mat-700/20 hover:text-mat-200"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full border-2 ${beltColors[s.beltRank] || "border-mat-500"}`}
+                  />
+                  {s.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Technique selection */}
       <div className="card p-6">

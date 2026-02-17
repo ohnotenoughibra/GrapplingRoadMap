@@ -7,19 +7,22 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const classId = request.nextUrl.searchParams.get("classId");
-    if (!classId) return NextResponse.json({ error: "classId required" }, { status: 400 });
+
+    const allStudents = await prisma.user.findMany({
+      where: { role: "student" },
+      select: { id: true, name: true, email: true, beltRank: true },
+    });
+
+    if (!classId) {
+      return NextResponse.json({ students: allStudents });
+    }
 
     const attendees = await prisma.classAttendance.findMany({
       where: { classSessionId: classId },
       include: { user: { select: { id: true, name: true, email: true } } },
     });
 
-    const allStudents = await prisma.user.findMany({
-      where: { role: "student" },
-      select: { id: true, name: true, email: true },
-    });
-
-    return NextResponse.json({ attendees, allStudents });
+    return NextResponse.json({ attendees, students: allStudents });
   } catch {
     return NextResponse.json({ error: "Failed to fetch attendance" }, { status: 500 });
   }

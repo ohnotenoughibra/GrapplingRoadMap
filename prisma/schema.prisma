@@ -39,6 +39,7 @@ model User {
   competitions         Competition[]
   challengesCreated    Challenge[]          @relation("ChallengeCreator")
   challengeEntries     ChallengeParticipant[]
+  sparringLogs         SparringLog[]
 }
 
 // ─── Technique Taxonomy ──────────────────────────────────────────────
@@ -276,6 +277,24 @@ model ChallengeParticipant {
   joinedAt    DateTime @default(now())
 
   @@unique([challengeId, userId])
+}
+
+// ─── Sparring Log ───────────────────────────────────────────────────
+
+model SparringLog {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  date        DateTime @default(now())
+  partner     String   // partner name (free text — partners may not have accounts)
+  rounds      Int      @default(1)
+  duration    Int?     // minutes per round
+  notes       String?
+  submissions String?  // JSON: ["armbar", "triangle"] — subs you hit
+  caughtIn    String?  // JSON: ["rnc"] — subs you got caught in
+  positions   String?  // JSON: ["closed-guard", "mount"] — positions played
+  mood        String?  // "great" | "good" | "okay" | "tough" | "bad"
+  createdAt   DateTime @default(now())
 }
 
 // ─── Social / Gamification ───────────────────────────────────────────
