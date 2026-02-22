@@ -48,8 +48,8 @@ export default function AppShell({ role, items, children }: AppShellProps) {
   const primaryTabs = items.slice(0, MOBILE_TAB_LIMIT);
   const overflowItems = items.slice(MOBILE_TAB_LIMIT);
 
-  /* Check if the currently active page is in the overflow list */
-  const isOverflowActive = overflowItems.some((item) => pathname === item.href);
+  /* Check if the currently active page is in the overflow list — use startsWith for nested routes */
+  const isOverflowActive = overflowItems.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"));
 
   return (
     <div className="min-h-screen bg-mat-950 flex flex-col">
@@ -96,7 +96,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {items.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
@@ -161,7 +161,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
             {/* Grid of overflow items */}
             <div className="px-4 pt-2 pb-4 grid grid-cols-4 gap-1">
               {overflowItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                 return (
                   <Link
                     key={item.href}
@@ -204,7 +204,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-mat-950/95 backdrop-blur-md border-t border-mat-800/50 lg:hidden safe-bottom">
         <div className="flex items-stretch">
           {primaryTabs.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}

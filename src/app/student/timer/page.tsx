@@ -15,6 +15,20 @@ const PRESETS: TimerPreset[] = [
   { label: "Sub Only 10min", round: 600, rest: 120, rounds: 3 },
 ];
 
+interface TapEvent {
+  type: "sub" | "caught" | "sweep" | "pass";
+  round: number;
+  timeInRound: number;
+  timestamp: number;
+}
+
+const TAP_BUTTONS = [
+  { type: "sub" as const, label: "Sub!", color: "bg-green-500/20 border-green-500/40 text-green-400 active:bg-green-500/40" },
+  { type: "caught" as const, label: "Caught", color: "bg-red-500/20 border-red-500/40 text-red-400 active:bg-red-500/40" },
+  { type: "sweep" as const, label: "Sweep", color: "bg-nogi-500/20 border-nogi-500/40 text-nogi-400 active:bg-nogi-500/40" },
+  { type: "pass" as const, label: "Pass", color: "bg-gi-500/20 border-gi-500/40 text-gi-400 active:bg-gi-500/40" },
+];
+
 export default function TimerPage() {
   const [roundTime, setRoundTime] = useState(300);
   const [restTime, setRestTime] = useState(60);
@@ -24,6 +38,8 @@ export default function TimerPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isRest, setIsRest] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [tapEvents, setTapEvents] = useState<TapEvent[]>([]);
+  const [lastTap, setLastTap] = useState<string | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
 
   const playBeep = useCallback((freq: number, duration: number) => {
@@ -38,9 +54,7 @@ export default function TimerPage() {
       gain.gain.value = 0.3;
       osc.start();
       osc.stop(ctx.currentTime + duration / 1000);
-    } catch {
-      // Audio not available
-    }
+    } catch { /* Audio not available */ }
   }, []);
 
   useEffect(() => {
@@ -49,20 +63,16 @@ export default function TimerPage() {
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Time's up for this segment
           if (isRest) {
-            // Rest is over, start next round
             playBeep(880, 300);
             setIsRest(false);
             setCurrentRound((r) => r + 1);
             return roundTime;
           } else if (currentRound < totalRounds) {
-            // Round over, start rest
             playBeep(440, 500);
             setIsRest(true);
             return restTime;
           } else {
-            // All rounds complete
             playBeep(660, 800);
             setIsRunning(false);
             setIsFinished(true);
@@ -70,7 +80,6 @@ export default function TimerPage() {
           }
         }
 
-        // Warning beeps at 10 seconds
         if (prev === 11) playBeep(660, 150);
         if (prev === 6) playBeep(660, 150);
         if (prev === 4) playBeep(660, 150);
@@ -90,9 +99,7 @@ export default function TimerPage() {
   };
 
   const handleStart = () => {
-    if (isFinished) {
-      resetTimer();
-    }
+    if (isFinished) resetTimer();
     setIsRunning(true);
   };
 
@@ -104,6 +111,8 @@ export default function TimerPage() {
     setIsFinished(false);
     setCurrentRound(1);
     setTimeLeft(roundTime);
+    setTapEvents([]);
+    setLastTap(null);
   };
 
   const applyPreset = (preset: TimerPreset) => {
@@ -115,6 +124,21 @@ export default function TimerPage() {
     setTotalRounds(preset.rounds);
     setCurrentRound(1);
     setTimeLeft(preset.round);
+    setTapEvents([]);
+    setLastTap(null);
+  };
+
+  const handleTap = (type: TapEvent["type"]) => {
+    const event: TapEvent = {
+      type,
+      round: currentRound,
+      timeInRound: roundTime - timeLeft,
+      timestamp: Date.now(),
+    };
+    setTapEvents((prev) => [...prev, event]);
+    setLastTap(type);
+    // Brief haptic feedback visual
+    setTimeout(() => setLastTap(null), 600);
   };
 
   const progress = isRest
@@ -131,31 +155,40 @@ export default function TimerPage() {
 
   const ringColor = isRest ? "stroke-yellow-400" : "stroke-gi-500";
 
+  // Tap summary for finished state
+  const tapSummary = {
+    sub: tapEvents.filter((e) => e.type === "sub").length,
+    caught: tapEvents.filter((e) => e.type === "caught").length,
+    sweep: tapEvents.filter((e) => e.type === "sweep").length,
+    pass: tapEvents.filter((e) => e.type === "pass").length,
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-5 lg:mb-8">
+      <div className="mb-4">
         <h1 className="text-xl lg:text-2xl font-bold text-mat-100">Round Timer</h1>
-        <p className="text-mat-400 text-sm mt-1">IBJJF-style timer for training rounds</p>
+        <p className="text-mat-400 text-sm mt-0.5">Tap events during rounds to track automatically</p>
       </div>
 
-      {/* Presets */}
-      <div className="card p-4 mb-6">
-        <div className="text-xs font-medium text-mat-500 uppercase tracking-wider mb-3">Presets</div>
-        <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              onClick={() => applyPreset(p)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-mat-800/50 border border-mat-700/30 text-mat-300 hover:text-mat-100 hover:bg-mat-700/50 transition-all"
-            >
-              {p.label}
-            </button>
-          ))}
+      {/* Presets — compact */}
+      {!isRunning && !isFinished && (
+        <div className="card p-3 mb-4">
+          <div className="flex flex-wrap gap-1.5">
+            {PRESETS.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => applyPreset(p)}
+                className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-mat-800/50 border border-mat-700/30 text-mat-400 hover:text-mat-200 hover:bg-mat-700/50 transition-all"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Timer Display */}
-      <div className="card p-8 mb-6 flex flex-col items-center">
+      <div className="card p-6 mb-4 flex flex-col items-center">
         {/* Status */}
         <div className="text-xs font-semibold uppercase tracking-widest mb-2">
           {isFinished ? (
@@ -163,12 +196,12 @@ export default function TimerPage() {
           ) : isRest ? (
             <span className="text-yellow-400">Rest</span>
           ) : (
-            <span className="text-gi-400">Round {currentRound} of {totalRounds}</span>
+            <span className="text-gi-400">Round {currentRound} / {totalRounds}</span>
           )}
         </div>
 
         {/* Circular Timer */}
-        <div className="relative w-64 h-64 mb-6">
+        <div className="relative w-48 h-48 lg:w-56 lg:h-56 mb-4">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="2" className="text-mat-800" />
             <circle
@@ -182,24 +215,24 @@ export default function TimerPage() {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-5xl font-mono font-bold tabular-nums ${timerColor} transition-colors`}>
+            <span className={`text-4xl lg:text-5xl font-mono font-bold tabular-nums ${timerColor} transition-colors`}>
               {formatTime(timeLeft)}
             </span>
             {!isFinished && (
-              <span className="text-xs text-mat-500 mt-1">
-                {isRest ? "until next round" : `${totalRounds - currentRound} round${totalRounds - currentRound !== 1 ? "s" : ""} left`}
+              <span className="text-[10px] text-mat-500 mt-1">
+                {isRest ? "rest" : `${totalRounds - currentRound} left`}
               </span>
             )}
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-2">
           <button
             onClick={resetTimer}
-            className="w-12 h-12 rounded-full bg-mat-800 border border-mat-700/50 text-mat-400 hover:text-mat-200 flex items-center justify-center transition-colors"
+            className="w-10 h-10 rounded-full bg-mat-800 border border-mat-700/50 text-mat-400 hover:text-mat-200 flex items-center justify-center transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
@@ -207,9 +240,9 @@ export default function TimerPage() {
           {isRunning ? (
             <button
               onClick={handlePause}
-              className="w-16 h-16 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 text-yellow-400 flex items-center justify-center hover:bg-yellow-500/30 transition-colors"
+              className="w-14 h-14 rounded-full bg-yellow-500/20 border-2 border-yellow-500/50 text-yellow-400 flex items-center justify-center hover:bg-yellow-500/30 transition-colors"
             >
-              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <rect x="6" y="4" width="4" height="16" rx="1" />
                 <rect x="14" y="4" width="4" height="16" rx="1" />
               </svg>
@@ -217,32 +250,103 @@ export default function TimerPage() {
           ) : (
             <button
               onClick={handleStart}
-              className="w-16 h-16 rounded-full bg-gi-500/20 border-2 border-gi-500/50 text-gi-400 flex items-center justify-center hover:bg-gi-500/30 transition-colors"
+              className="w-14 h-14 rounded-full bg-gi-500/20 border-2 border-gi-500/50 text-gi-400 flex items-center justify-center hover:bg-gi-500/30 transition-colors"
             >
-              <svg className="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </button>
           )}
 
           <button
-            onClick={() => {
-              setTimeLeft((prev) => prev + 30);
-            }}
-            className="w-12 h-12 rounded-full bg-mat-800 border border-mat-700/50 text-mat-400 hover:text-mat-200 flex items-center justify-center transition-colors text-xs font-bold"
+            onClick={() => setTimeLeft((prev) => prev + 30)}
+            className="w-10 h-10 rounded-full bg-mat-800 border border-mat-700/50 text-mat-400 hover:text-mat-200 flex items-center justify-center transition-colors text-[10px] font-bold"
           >
-            +30s
+            +30
           </button>
         </div>
       </div>
 
-      {/* Custom Settings */}
-      {!isRunning && (
-        <div className="card p-4">
-          <div className="text-xs font-medium text-mat-500 uppercase tracking-wider mb-3">Custom</div>
-          <div className="grid grid-cols-3 gap-4">
+      {/* ═══ TAP LOGGING — During Rounds ═══ */}
+      {(isRunning || (isFinished && tapEvents.length > 0)) && (
+        <div className="card p-4 mb-4">
+          {isRunning && !isRest && (
+            <>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-mat-500 mb-2">
+                Quick Tap
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {TAP_BUTTONS.map((btn) => (
+                  <button
+                    key={btn.type}
+                    onClick={() => handleTap(btn.type)}
+                    className={`py-3 rounded-xl border text-sm font-semibold transition-all active:scale-[0.93] ${btn.color} ${
+                      lastTap === btn.type ? "scale-95 opacity-70" : ""
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Tap summary */}
+          {tapEvents.length > 0 && (
+            <div className={`flex gap-3 ${isRunning && !isRest ? "mt-3 pt-3 border-t border-mat-800/30" : ""}`}>
+              {tapSummary.sub > 0 && (
+                <span className="text-[10px] text-green-400 font-medium">
+                  {tapSummary.sub} sub{tapSummary.sub !== 1 ? "s" : ""}
+                </span>
+              )}
+              {tapSummary.caught > 0 && (
+                <span className="text-[10px] text-red-400 font-medium">
+                  {tapSummary.caught} caught
+                </span>
+              )}
+              {tapSummary.sweep > 0 && (
+                <span className="text-[10px] text-nogi-400 font-medium">
+                  {tapSummary.sweep} sweep{tapSummary.sweep !== 1 ? "s" : ""}
+                </span>
+              )}
+              {tapSummary.pass > 0 && (
+                <span className="text-[10px] text-gi-400 font-medium">
+                  {tapSummary.pass} pass{tapSummary.pass !== 1 ? "es" : ""}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Post-session: save to sparring log prompt */}
+          {isFinished && tapEvents.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-mat-800/30">
+              <p className="text-xs text-mat-400 mb-2">Save this session to your sparring log?</p>
+              <button
+                onClick={() => {
+                  // Navigate to sparring with pre-filled data
+                  const params = new URLSearchParams({
+                    rounds: String(totalRounds),
+                    subs: String(tapSummary.sub),
+                    caught: String(tapSummary.caught),
+                  });
+                  window.location.href = `/student/sparring?${params.toString()}`;
+                }}
+                className="btn-primary text-xs w-full"
+              >
+                Save to Sparring Log
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Custom settings — compact */}
+      {!isRunning && !isFinished && (
+        <div className="card p-3">
+          <div className="text-[10px] font-medium text-mat-500 uppercase tracking-wider mb-2">Custom</div>
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-mat-400 mb-1">Round (min)</label>
+              <label className="block text-[10px] text-mat-500 mb-1">Round (min)</label>
               <input
                 type="number"
                 value={Math.floor(roundTime / 60)}
@@ -253,11 +357,11 @@ export default function TimerPage() {
                 }}
                 min={1}
                 max={30}
-                className="w-full px-3 py-2 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
+                className="w-full px-2 py-1.5 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-mat-400 mb-1">Rest (sec)</label>
+              <label className="block text-[10px] text-mat-500 mb-1">Rest (sec)</label>
               <input
                 type="number"
                 value={restTime}
@@ -265,18 +369,18 @@ export default function TimerPage() {
                 min={10}
                 max={300}
                 step={10}
-                className="w-full px-3 py-2 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
+                className="w-full px-2 py-1.5 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-mat-400 mb-1">Rounds</label>
+              <label className="block text-[10px] text-mat-500 mb-1">Rounds</label>
               <input
                 type="number"
                 value={totalRounds}
                 onChange={(e) => setTotalRounds(Number(e.target.value))}
                 min={1}
                 max={20}
-                className="w-full px-3 py-2 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
+                className="w-full px-2 py-1.5 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
               />
             </div>
           </div>

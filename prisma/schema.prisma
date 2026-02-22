@@ -40,6 +40,8 @@ model User {
   challengesCreated    Challenge[]          @relation("ChallengeCreator")
   challengeEntries     ChallengeParticipant[]
   sparringLogs         SparringLog[]
+  dailyMissions        DailyMission[]
+  academyMemberships   AcademyMember[]
 }
 
 // ─── Technique Taxonomy ──────────────────────────────────────────────
@@ -73,6 +75,7 @@ model Technique {
   studentSkills       StudentSkill[]
   milestoneItems      MilestoneTechnique[]
   templateTechniques  ClassTemplateTechnique[]
+  dailyMissions       DailyMission[]
 }
 
 // ─── Milestones (Skill Progression) ─────────────────────────────────
@@ -295,6 +298,50 @@ model SparringLog {
   positions   String?  // JSON: ["closed-guard", "mount"] — positions played
   mood        String?  // "great" | "good" | "okay" | "tough" | "bad"
   createdAt   DateTime @default(now())
+}
+
+// ─── Daily Missions ─────────────────────────────────────────────────
+
+model DailyMission {
+  id          String     @id @default(cuid())
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String
+  date        DateTime   @db.Date
+  title       String
+  description String
+  reason      String
+  techniqueId String?
+  technique   Technique? @relation(fields: [techniqueId], references: [id])
+  status      String     @default("pending") // "pending" | "completed" | "partial" | "skipped"
+  feedback    String?
+  createdAt   DateTime   @default(now())
+
+  @@unique([userId, date])
+}
+
+// ─── Academies (Multi-Gym) ──────────────────────────────────────────
+
+model Academy {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  timezone  String   @default("America/New_York")
+  createdAt DateTime @default(now())
+
+  members AcademyMember[]
+}
+
+model AcademyMember {
+  id        String   @id @default(cuid())
+  academy   Academy  @relation(fields: [academyId], references: [id])
+  academyId String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  role      String   @default("student") // "owner" | "coach" | "student"
+  joinedAt  DateTime @default(now())
+
+  @@unique([academyId, userId])
 }
 
 // ─── Social / Gamification ───────────────────────────────────────────
