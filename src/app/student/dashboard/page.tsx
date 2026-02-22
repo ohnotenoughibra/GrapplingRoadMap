@@ -277,6 +277,7 @@ export default function StudentDashboard() {
       {/* Collapsible stats section */}
       <button
         onClick={() => setShowStats(!showStats)}
+        aria-expanded={showStats}
         className="w-full flex items-center justify-between p-3 rounded-xl bg-mat-900/30 border border-mat-800/30 mb-4 transition-colors hover:bg-mat-900/50"
       >
         <span className="text-xs font-medium text-mat-500">

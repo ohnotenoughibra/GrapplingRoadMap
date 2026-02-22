@@ -230,6 +230,7 @@ export default function SparringPage() {
               {/* Expandable: subs, caught, positions */}
               <button
                 onClick={() => setShowAdvanced(!showAdvanced)}
+                aria-expanded={showAdvanced}
                 className="flex items-center gap-1.5 text-xs text-mat-500 hover:text-mat-300 mb-3 transition-colors"
               >
                 <svg className={`w-3 h-3 transition-transform ${showAdvanced ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -344,9 +345,9 @@ export default function SparringPage() {
         </div>
         <div className="card p-3 text-center">
           <div className="text-lg font-bold text-green-400">{allSubs.length}</div>
-          <div className="text-[9px] text-mat-500">Subs</div>
+          <div className="text-[10px] text-mat-500">Subs</div>
           <div className="text-base font-bold text-red-400">{allCaught.length}</div>
-          <div className="text-[9px] text-mat-500">Caught</div>
+          <div className="text-[10px] text-mat-500">Caught</div>
         </div>
       </div>
 
@@ -396,9 +397,9 @@ export default function SparringPage() {
                 </div>
                 {(subs.length > 0 || caught.length > 0 || pos.length > 0) && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {subs.map((s, i) => <span key={`s-${i}`} className="px-1.5 py-0.5 rounded text-[9px] bg-green-500/10 text-green-400">{s}</span>)}
-                    {caught.map((c, i) => <span key={`c-${i}`} className="px-1.5 py-0.5 rounded text-[9px] bg-red-500/10 text-red-400">{c}</span>)}
-                    {pos.map((p, i) => <span key={`p-${i}`} className="px-1.5 py-0.5 rounded text-[9px] bg-nogi-500/10 text-nogi-400">{p}</span>)}
+                    {subs.map((s, i) => <span key={`s-${i}`} className="px-1.5 py-0.5 rounded text-[10px] bg-green-500/10 text-green-400">{s}</span>)}
+                    {caught.map((c, i) => <span key={`c-${i}`} className="px-1.5 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400">{c}</span>)}
+                    {pos.map((p, i) => <span key={`p-${i}`} className="px-1.5 py-0.5 rounded text-[10px] bg-nogi-500/10 text-nogi-400">{p}</span>)}
                   </div>
                 )}
                 {log.notes && <p className="text-[10px] text-mat-400 mt-1.5 italic">{log.notes}</p>}

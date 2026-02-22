@@ -42,6 +42,25 @@ const config: Config = {
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
+      keyframes: {
+        fadeIn: {
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        slideInFromBottom: {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
+        pulseDot: {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.5", transform: "scale(0.8)" },
+        },
+      },
+      animation: {
+        "fade-in": "fadeIn 0.2s ease-out",
+        "slide-in-bottom": "slideInFromBottom 0.2s ease-out",
+        "pulse-dot": "pulseDot 2s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
