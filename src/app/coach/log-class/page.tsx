@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import DisciplineToggle from "@/components/shared/DisciplineToggle";
 import type { Discipline } from "@/types";
 
@@ -26,7 +27,18 @@ interface Student {
   beltRank: string;
 }
 
-export default function LogClassPage() {
+interface Template {
+  id: string;
+  name: string;
+  discipline: string;
+  warmup: string | null;
+  notes: string | null;
+  techniques: { technique: { id: string; name: string } }[];
+  _count: { classes: number };
+}
+
+function LogClassForm() {
+  const searchParams = useSearchParams();
   const [discipline, setDiscipline] = useState<Discipline>("nogi");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [title, setTitle] = useState("");
@@ -40,8 +52,11 @@ export default function LogClassPage() {
   const [saved, setSaved] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
 
-  // Fetch techniques and students
+  // Fetch techniques, students, and templates
   useEffect(() => {
     fetch("/api/techniques")
       .then((r) => r.json())
@@ -55,7 +70,46 @@ export default function LogClassPage() {
         if (data.students) setStudents(data.students);
       })
       .catch(() => {});
+    fetch("/api/coach/templates")
+      .then((r) => r.json())
+      .then((data) => setTemplates(data.templates || []))
+      .catch(() => {});
   }, []);
+
+  // Pre-fill from URL params (from dashboard suggestion or plan-class)
+  useEffect(() => {
+    if (prefilled || techniques.length === 0) return;
+
+    const paramDisc = searchParams.get("discipline") as Discipline | null;
+    const paramTitle = searchParams.get("title");
+    const paramTechniques = searchParams.get("techniques");
+    const paramNotes = searchParams.get("notes") || searchParams.get("warmup");
+
+    if (paramDisc || paramTitle || paramTechniques) {
+      if (paramDisc && ["gi", "nogi", "wrestling"].includes(paramDisc)) {
+        setDiscipline(paramDisc);
+      }
+      if (paramTitle) setTitle(paramTitle);
+      if (paramNotes) setNotes(paramNotes);
+      if (paramTechniques) {
+        const ids = paramTechniques.split(",").filter(Boolean);
+        const validIds = ids.filter((id) => techniques.some((t) => t.id === id));
+        if (validIds.length > 0) {
+          setSelectedTechniques(validIds);
+        }
+      }
+      setPrefilled(true);
+    }
+  }, [searchParams, techniques, prefilled]);
+
+  // Load a template into the form
+  const loadTemplate = (template: Template) => {
+    setDiscipline(template.discipline as Discipline);
+    setTitle(template.name);
+    if (template.notes) setNotes(template.notes);
+    setSelectedTechniques(template.techniques.map((t) => t.technique.id));
+    setShowTemplates(false);
+  };
 
   // Filter techniques
   const filtered = techniques.filter((t) => {
@@ -116,15 +170,59 @@ export default function LogClassPage() {
     }
   };
 
+  const discColor = (d: string) =>
+    d === "gi" ? "text-gi-400 bg-gi-500/10 border-gi-500/20"
+    : d === "nogi" ? "text-nogi-400 bg-nogi-500/10 border-nogi-500/20"
+    : "text-wrestling-400 bg-wrestling-500/10 border-wrestling-500/20";
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-5 lg:mb-8">
-        <h1 className="text-xl lg:text-2xl font-bold text-mat-100">Log a Class</h1>
-        <p className="text-mat-400 text-sm mt-1">
-          Record what was covered. Takes 30 seconds.
-        </p>
+      <div className="flex items-center justify-between mb-5 lg:mb-8">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-bold text-mat-100">Log a Class</h1>
+          <p className="text-mat-400 text-sm mt-1">
+            Record what was covered. Takes 30 seconds.
+          </p>
+        </div>
+        {templates.length > 0 && (
+          <button
+            onClick={() => setShowTemplates(!showTemplates)}
+            className="text-sm text-gi-400 hover:text-gi-300 font-medium transition-colors"
+          >
+            {showTemplates ? "Hide Templates" : "Use Template"}
+          </button>
+        )}
       </div>
+
+      {/* Template picker */}
+      {showTemplates && templates.length > 0 && (
+        <div className="card p-4 mb-4 lg:mb-6">
+          <div className="text-xs font-semibold text-mat-500 uppercase tracking-wider mb-3">
+            Load a Template
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+            {templates.map((tpl) => (
+              <button
+                key={tpl.id}
+                onClick={() => loadTemplate(tpl)}
+                className="text-left p-3 rounded-lg bg-mat-800/30 border border-mat-700/20 hover:border-mat-600/40 hover:bg-mat-800/50 transition-all"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border ${discColor(tpl.discipline)}`}>
+                    {tpl.discipline === "nogi" ? "No-Gi" : tpl.discipline}
+                  </span>
+                  <span className="text-sm font-medium text-mat-200 truncate">{tpl.name}</span>
+                </div>
+                <div className="text-[10px] text-mat-500">
+                  {tpl.techniques.length} techniques
+                  {tpl._count.classes > 0 && ` \u00b7 used ${tpl._count.classes}x`}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Success message */}
       {saved && (
@@ -361,5 +459,23 @@ export default function LogClassPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function LogClassPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 bg-mat-800 rounded-lg" />
+            <div className="h-32 bg-mat-800/30 rounded-xl" />
+            <div className="h-64 bg-mat-800/30 rounded-xl" />
+          </div>
+        </div>
+      }
+    >
+      <LogClassForm />
+    </Suspense>
   );
 }

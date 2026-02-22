@@ -57,18 +57,52 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Auto-expose attendees to class techniques (batched in a single transaction)
-    if (attendeeIds?.length && techniqueIds?.length) {
-      const upserts = (attendeeIds as string[]).flatMap((studentId) =>
-        (techniqueIds as string[]).map((techId) =>
-          prisma.studentSkill.upsert({
-            where: { userId_techniqueId: { userId: studentId, techniqueId: techId } },
-            update: { updatedAt: new Date() },
-            create: { userId: studentId, techniqueId: techId, level: "exposed" },
+    // Update attendee progression: XP, streaks, and auto-expose to techniques
+    if (attendeeIds?.length) {
+      const students = await prisma.user.findMany({
+        where: { id: { in: attendeeIds as string[] } },
+        select: { id: true, currentStreak: true, longestStreak: true, lastTrainedAt: true },
+      });
+
+      const now = new Date();
+      const operations = [];
+
+      for (const student of students) {
+        // Streak calculation
+        const lastTrained = student.lastTrainedAt;
+        let newStreak = 1;
+        if (lastTrained) {
+          const diffDays = Math.floor((now.getTime() - lastTrained.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 2) newStreak = student.currentStreak + 1;
+        }
+
+        operations.push(
+          prisma.user.update({
+            where: { id: student.id },
+            data: {
+              lastTrainedAt: now,
+              currentStreak: newStreak,
+              longestStreak: Math.max(newStreak, student.longestStreak),
+              xp: { increment: 25 },
+            },
           })
-        )
-      );
-      await prisma.$transaction(upserts);
+        );
+
+        // Auto-expose to class techniques
+        if (techniqueIds?.length) {
+          for (const techId of techniqueIds as string[]) {
+            operations.push(
+              prisma.studentSkill.upsert({
+                where: { userId_techniqueId: { userId: student.id, techniqueId: techId } },
+                update: { updatedAt: new Date() },
+                create: { userId: student.id, techniqueId: techId, level: "exposed" },
+              })
+            );
+          }
+        }
+      }
+
+      await prisma.$transaction(operations);
     }
 
     return NextResponse.json(classSession, { status: 201 });

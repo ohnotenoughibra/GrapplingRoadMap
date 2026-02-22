@@ -227,7 +227,11 @@ export default function CoachDashboard() {
           </div>
 
           <Link
-            href="/coach/log-class"
+            href={`/coach/log-class?${new URLSearchParams({
+              discipline: data.classSuggestion.discipline,
+              title: data.classSuggestion.title,
+              techniques: data.classSuggestion.techniques.map((t) => t.id).join(","),
+            }).toString()}`}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gi-500/10 border border-gi-500/20 text-sm text-gi-400 font-medium hover:bg-gi-500/20 transition-colors"
           >
             Use This Plan
