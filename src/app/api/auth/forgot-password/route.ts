@@ -6,6 +6,11 @@ import { sendEmail, buildPasswordResetEmail } from "@/lib/email";
 const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 export async function POST(request: NextRequest) {
+  // Always return the same response — never reveal whether the email exists.
+  const successResponse = NextResponse.json({
+    message: "If that email is registered, you'll receive a reset link shortly.",
+  });
+
   try {
     const { email } = await request.json();
 
@@ -15,12 +20,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Always return success — never reveal whether the email exists.
-    // This prevents account enumeration attacks.
-    const successResponse = NextResponse.json({
-      message: "If that email is registered, you'll receive a reset link shortly.",
-    });
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
       .digest("hex");
 
     // Upsert: one active token per user (requesting again invalidates the old one)
-    await (prisma as any).passwordResetToken?.upsert?.({
+    await prisma.passwordResetToken.upsert({
       where: { userId: user.id },
       update: {
         tokenHash,
@@ -59,16 +58,19 @@ export async function POST(request: NextRequest) {
 
     // Send the email
     const emailContent = buildPasswordResetEmail(resetUrl);
-    await sendEmail({
+    const sent = await sendEmail({
       to: user.email,
       ...emailContent,
     });
 
+    if (!sent) {
+      console.error("[forgot-password] Failed to send email to", user.email);
+    }
+
     return successResponse;
   } catch (error) {
-    console.error("Forgot password error:", error);
-    return NextResponse.json(
-      { message: "If that email is registered, you'll receive a reset link shortly." }
-    );
+    console.error("[forgot-password] Error:", error);
+    // Still return success to prevent information leakage
+    return successResponse;
   }
 }
