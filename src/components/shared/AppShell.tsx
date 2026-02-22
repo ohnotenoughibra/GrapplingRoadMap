@@ -54,7 +54,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-mat-950 flex flex-col">
       {/* Top bar — mobile only */}
-      <header className="sticky top-0 z-40 bg-mat-950/90 backdrop-blur-md border-b border-mat-800/50 px-4 py-3 lg:hidden">
+      <header className="sticky top-0 z-40 bg-mat-950/90 backdrop-blur-md border-b border-mat-800/50 px-4 py-3 safe-top lg:hidden">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gi-500 via-nogi-500 to-wrestling-500 flex items-center justify-center text-white font-bold text-xs">
