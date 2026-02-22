@@ -3,13 +3,26 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
+interface Mission {
+  id: string;
+  title: string;
+  description: string;
+  reason: string;
+  status: string;
+  technique?: {
+    name: string;
+    slug: string;
+    position: { name: string };
+  } | null;
+}
+
 interface DashboardData {
   user: {
     name: string;
     xp: number;
     currentStreak: number;
     longestStreak: number;
-    joinedAt: string;
+    beltRank?: string;
   };
   totalClasses: number;
   skillStats: {
@@ -35,37 +48,44 @@ interface DashboardData {
   badges: { badge: { name: string; icon: string } }[];
 }
 
-interface Recommendation {
-  type: string;
-  title: string;
-  description: string;
-  techniques?: Array<{ name: string; position: string }>;
-}
-
 export default function StudentDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [recs, setRecs] = useState<Recommendation[]>([]);
+  const [mission, setMission] = useState<Mission | null>(null);
+  const [missionLoading, setMissionLoading] = useState(true);
+  const [showStats, setShowStats] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   useEffect(() => {
     fetch("/api/student/dashboard")
       .then((r) => r.json())
       .then(setData);
-    fetch("/api/ai/recommendations")
+    fetch("/api/student/mission")
       .then((r) => r.json())
-      .then((d) => setRecs((d.recommendations || []).slice(0, 2)))
-      .catch(() => {});
+      .then((d) => setMission(d.mission))
+      .catch(() => {})
+      .finally(() => setMissionLoading(false));
   }, []);
+
+  const handleMissionFeedback = async (status: string) => {
+    if (!mission?.id || mission.id === "fallback" || mission.id === "generated") return;
+    setFeedbackSent(true);
+    try {
+      await fetch("/api/student/mission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ missionId: mission.id, status }),
+      });
+      setMission((prev) => (prev ? { ...prev, status } : null));
+    } catch { /* ignore */ }
+  };
 
   if (!data) {
     return (
-      <div className="max-w-5xl mx-auto">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-mat-800 rounded" />
-          <div className="grid grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-mat-800/50 rounded-xl" />
-            ))}
-          </div>
+      <div className="max-w-2xl mx-auto px-1">
+        <div className="animate-pulse space-y-6">
+          <div className="h-10 w-56 bg-mat-800 rounded-lg" />
+          <div className="h-64 bg-mat-800/50 rounded-2xl" />
+          <div className="h-20 bg-mat-800/30 rounded-xl" />
         </div>
       </div>
     );
@@ -78,203 +98,272 @@ export default function StudentDashboard() {
         )
       : 0;
 
-  const typeIcon = (t: string) => {
-    switch (t) {
-      case "milestone_close": return "🎯";
-      case "milestone_new": return "🧭";
-      case "weak_position": return "💡";
-      case "review": return "📖";
-      case "streak": return "🔥";
-      default: return "⚡";
-    }
-  };
+  const missionCompleted = mission?.status === "completed" || mission?.status === "partial";
 
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* Welcome header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-mat-100">
-          Welcome back, {data.user.name}
+    <div className="max-w-2xl mx-auto">
+      {/* Greeting — minimal */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-mat-100">
+          {getGreeting()}, {data.user.name.split(" ")[0]}
         </h1>
-        <p className="text-mat-400 text-sm mt-1">
-          Your journey continues. Every class is a step forward.
-        </p>
+        {data.user.currentStreak > 0 && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-nogi-400 text-sm font-semibold">
+              {data.user.currentStreak} day streak
+            </span>
+            <span className="text-mat-600 text-xs">
+              &middot; best: {data.user.longestStreak}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
-            Mat Time
-          </div>
-          <div className="text-3xl font-bold text-mat-100">
-            {data.totalClasses}
-          </div>
-          <div className="text-xs text-mat-500 mt-1">classes</div>
-        </div>
+      {/* ═══ TODAY'S MISSION — the hero card ═══ */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-mat-900 via-mat-900 to-gi-500/10 border border-mat-800/80 mb-6">
+        {/* Subtle glow */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gi-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-nogi-500/5 rounded-full blur-2xl" />
 
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
-            Streak
-          </div>
-          <div className="text-3xl font-bold text-nogi-400">
-            {data.user.currentStreak > 0 && (
-              <span className="streak-flame mr-1">
-                {data.user.currentStreak}
-              </span>
-            )}
-            {data.user.currentStreak === 0 && "0"}
-          </div>
-          <div className="text-xs text-mat-500 mt-1">
-            day{data.user.currentStreak !== 1 ? "s" : ""} &middot; best:{" "}
-            {data.user.longestStreak}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
-            XP
-          </div>
-          <div className="text-3xl font-bold text-mat-100">{data.user.xp}</div>
-          <div className="mt-2 xp-bar">
-            <div
-              className="xp-fill"
-              style={{ width: `${Math.min(100, (data.user.xp % 1000) / 10)}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <div className="text-mat-500 text-xs font-medium uppercase tracking-wider mb-2">
-            Skills
-          </div>
-          <div className="text-3xl font-bold text-mat-100">
-            {data.skillStats.proficient}
-          </div>
-          <div className="text-xs text-mat-500 mt-1">
-            proficient of {data.skillStats.total} tracked
-          </div>
-        </div>
-      </div>
-
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Current milestone */}
-        <div className="lg:col-span-2 card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
-              Current Stage: {data.currentMilestone.name}
-            </h2>
-            <Link
-              href="/student/journey"
-              className="text-xs text-gi-400 hover:text-gi-300"
-            >
-              View Journey Map
-            </Link>
+        <div className="relative p-5 lg:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-gi-500 animate-pulse" />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-gi-400">
+              Today&apos;s Mission
+            </span>
           </div>
 
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-mat-400">
-                {data.currentMilestone.progress} of{" "}
-                {data.currentMilestone.total} skills proficient
-              </span>
-              <span className="font-mono text-mat-300">{milestonePercent}%</span>
+          {missionLoading ? (
+            <div className="animate-pulse space-y-3">
+              <div className="h-6 w-3/4 bg-mat-800 rounded" />
+              <div className="h-4 w-full bg-mat-800/60 rounded" />
+              <div className="h-4 w-2/3 bg-mat-800/40 rounded" />
             </div>
-            <div className="h-3 rounded-full bg-mat-800 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-gi-500 to-nogi-500 transition-all duration-700"
-                style={{ width: `${milestonePercent}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Skill breakdown */}
-          <div className="grid grid-cols-4 gap-3 mt-6">
-            {(
-              [
-                { key: "exposed", label: "Exposed", color: "bg-mat-500" },
-                { key: "drilling", label: "Drilling", color: "bg-yellow-500" },
-                { key: "sparring", label: "Sparring", color: "bg-gi-500" },
-                { key: "proficient", label: "Proficient", color: "bg-green-500" },
-              ] as const
-            ).map(({ key, label, color }) => (
-              <div
-                key={key}
-                className="text-center p-3 rounded-lg bg-mat-800/30"
-              >
-                <div className="text-lg font-bold text-mat-100">
-                  {data.skillStats[key]}
-                </div>
-                <div className="flex items-center justify-center gap-1.5 mt-1">
-                  <div className={`w-2 h-2 rounded-full ${color}`} />
-                  <span className="text-[10px] text-mat-500 uppercase">
-                    {label}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right column: Badges + AI recs */}
-        <div className="space-y-6">
-          {/* Badges */}
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
-                Badges
+          ) : mission ? (
+            <>
+              <h2 className="text-lg lg:text-xl font-bold text-mat-100 mb-2">
+                {mission.title}
               </h2>
-              <Link
-                href="/student/badges"
-                className="text-xs text-gi-400 hover:text-gi-300"
-              >
-                View all
-              </Link>
-            </div>
+              <p className="text-sm text-mat-300 leading-relaxed mb-3">
+                {mission.description}
+              </p>
+              <p className="text-xs text-mat-500 italic mb-5">
+                {mission.reason}
+              </p>
 
-            {data.badges.length === 0 ? (
-              <div className="text-center py-8 text-mat-500 text-sm">
-                <p className="mb-1">No badges yet.</p>
-                <p className="text-mat-600 text-xs">
-                  Keep training — they&apos;ll come.
-                </p>
+              {/* Action buttons */}
+              {mission.technique && (
+                <Link
+                  href={`/student/techniques/${mission.technique.slug}`}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-mat-800/50 border border-mat-700/30 text-sm text-gi-400 hover:bg-mat-800 transition-colors mb-4"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  View Technique
+                </Link>
+              )}
+
+              {/* Post-training feedback */}
+              {!missionCompleted && !feedbackSent ? (
+                <div className="border-t border-mat-800/50 pt-4 mt-2">
+                  <p className="text-xs text-mat-500 mb-3">After training — did you work on it?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleMissionFeedback("completed")}
+                      className="flex-1 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium hover:bg-green-500/20 transition-all active:scale-[0.98]"
+                    >
+                      Yes, nailed it
+                    </button>
+                    <button
+                      onClick={() => handleMissionFeedback("partial")}
+                      className="flex-1 py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium hover:bg-yellow-500/20 transition-all active:scale-[0.98]"
+                    >
+                      Partially
+                    </button>
+                    <button
+                      onClick={() => handleMissionFeedback("skipped")}
+                      className="flex-1 py-2.5 rounded-xl bg-mat-800/50 border border-mat-700/30 text-mat-400 text-sm font-medium hover:bg-mat-800 transition-all active:scale-[0.98]"
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+              ) : missionCompleted || feedbackSent ? (
+                <div className="border-t border-mat-800/50 pt-4 mt-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-green-400 font-medium">
+                      {mission.status === "completed" ? "Mission complete" : mission.status === "partial" ? "Partially done" : "Logged"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-mat-400 text-sm">
+              Couldn&apos;t generate a mission. Get on the mat and train!
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Quick links row */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <Link
+          href="/student/timer"
+          className="card p-3 flex flex-col items-center gap-1.5 hover:border-mat-700/50 transition-colors"
+        >
+          <svg className="w-5 h-5 text-gi-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-[10px] text-mat-400 font-medium">Timer</span>
+        </Link>
+        <Link
+          href="/student/sparring"
+          className="card p-3 flex flex-col items-center gap-1.5 hover:border-mat-700/50 transition-colors"
+        >
+          <svg className="w-5 h-5 text-nogi-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span className="text-[10px] text-mat-400 font-medium">Log Roll</span>
+        </Link>
+        <Link
+          href="/student/journey"
+          className="card p-3 flex flex-col items-center gap-1.5 hover:border-mat-700/50 transition-colors"
+        >
+          <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          <span className="text-[10px] text-mat-400 font-medium">Journey</span>
+        </Link>
+      </div>
+
+      {/* Milestone progress — compact */}
+      <Link href="/student/journey" className="block card p-4 mb-4 hover:border-mat-700/50 transition-colors">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-mat-400">
+            {data.currentMilestone.name}
+          </span>
+          <span className="text-xs font-mono text-mat-500">
+            {milestonePercent}%
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-mat-800 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-gi-500 to-nogi-500 transition-all duration-700"
+            style={{ width: `${milestonePercent}%` }}
+          />
+        </div>
+        <div className="flex gap-3 mt-2">
+          <span className="text-[10px] text-mat-500">
+            <span className="text-green-400 font-medium">{data.skillStats.proficient}</span> proficient
+          </span>
+          <span className="text-[10px] text-mat-500">
+            <span className="text-gi-400 font-medium">{data.skillStats.sparring}</span> sparring
+          </span>
+          <span className="text-[10px] text-mat-500">
+            <span className="text-yellow-400 font-medium">{data.skillStats.drilling}</span> drilling
+          </span>
+          <span className="text-[10px] text-mat-500">
+            <span className="text-mat-400 font-medium">{data.skillStats.exposed}</span> exposed
+          </span>
+        </div>
+      </Link>
+
+      {/* Collapsible stats section */}
+      <button
+        onClick={() => setShowStats(!showStats)}
+        className="w-full flex items-center justify-between p-3 rounded-xl bg-mat-900/30 border border-mat-800/30 mb-4 transition-colors hover:bg-mat-900/50"
+      >
+        <span className="text-xs font-medium text-mat-500">
+          {showStats ? "Hide details" : "Stats & recent classes"}
+        </span>
+        <svg
+          className={`w-4 h-4 text-mat-600 transition-transform ${showStats ? "rotate-180" : ""}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {showStats && (
+        <div className="space-y-4 mb-6 animate-in fade-in duration-200">
+          {/* Stats row */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="card p-3 text-center">
+              <div className="text-xl font-bold text-mat-100">{data.totalClasses}</div>
+              <div className="text-[10px] text-mat-500">Classes</div>
+            </div>
+            <div className="card p-3 text-center">
+              <div className="text-xl font-bold text-nogi-400">{data.user.currentStreak}</div>
+              <div className="text-[10px] text-mat-500">Streak</div>
+            </div>
+            <div className="card p-3 text-center">
+              <div className="text-xl font-bold text-mat-100">{data.user.xp}</div>
+              <div className="text-[10px] text-mat-500">XP</div>
+            </div>
+            <div className="card p-3 text-center">
+              <div className="text-xl font-bold text-green-400">{data.skillStats.proficient}</div>
+              <div className="text-[10px] text-mat-500">Proficient</div>
+            </div>
+          </div>
+
+          {/* Badges */}
+          {data.badges.length > 0 && (
+            <div className="card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-mat-500">Badges</span>
+                <Link href="/student/badges" className="text-[10px] text-gi-400">View all</Link>
               </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {data.badges.map((ub) => (
+              <div className="flex flex-wrap gap-2">
+                {data.badges.slice(0, 6).map((ub) => (
                   <div
                     key={ub.badge.name}
-                    className="flex flex-col items-center p-3 rounded-lg bg-mat-800/30"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-mat-800/30"
                   >
-                    <span className="text-2xl mb-1">{ub.badge.icon}</span>
-                    <span className="text-[10px] text-mat-400 text-center leading-tight">
-                      {ub.badge.name}
-                    </span>
+                    <span className="text-base">{ub.badge.icon}</span>
+                    <span className="text-[10px] text-mat-400">{ub.badge.name}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* AI Recommendations preview */}
-          {recs.length > 0 && (
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
-                  Focus This Week
-                </h2>
-                <Link href="/student/recommendations" className="text-xs text-gi-400 hover:text-gi-300">
-                  View all
-                </Link>
+          {/* Recent classes */}
+          {data.recentClasses.length > 0 && (
+            <div className="card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-mat-500">Recent Classes</span>
+                <Link href="/student/classes" className="text-[10px] text-gi-400">View all</Link>
               </div>
-              <div className="space-y-3">
-                {recs.map((rec, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <span className="text-lg">{typeIcon(rec.type)}</span>
-                    <div>
-                      <div className="text-sm font-medium text-mat-200">{rec.title}</div>
-                      <p className="text-xs text-mat-500 mt-0.5 line-clamp-2">{rec.description}</p>
+              <div className="space-y-2">
+                {data.recentClasses.slice(0, 3).map((cls) => (
+                  <div key={cls.id} className="flex items-center gap-3 p-2 rounded-lg bg-mat-800/20">
+                    <div
+                      className={`w-1 h-6 rounded-full ${
+                        cls.discipline === "gi"
+                          ? "bg-gi-500"
+                          : cls.discipline === "nogi"
+                            ? "bg-nogi-500"
+                            : "bg-wrestling-500"
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-mat-200 truncate">
+                        {cls.title || `${cls.discipline === "nogi" ? "No-Gi" : cls.discipline.charAt(0).toUpperCase() + cls.discipline.slice(1)} Class`}
+                      </div>
+                      <div className="text-[10px] text-mat-500">
+                        {new Date(cls.date).toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        &middot; {cls.techniques.length} techniques
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -282,61 +371,14 @@ export default function StudentDashboard() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Recent classes */}
-      <div className="mt-6 card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
-            Recent Classes
-          </h2>
-          <Link
-            href="/student/classes"
-            className="text-xs text-gi-400 hover:text-gi-300"
-          >
-            View all
-          </Link>
-        </div>
-
-        {data.recentClasses.length === 0 ? (
-          <p className="text-mat-500 text-sm text-center py-8">
-            No classes attended yet. Get on the mat!
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {data.recentClasses.map((cls) => (
-              <div
-                key={cls.id}
-                className="flex items-center gap-4 p-3 rounded-lg bg-mat-800/30"
-              >
-                <div
-                  className={`w-1.5 h-8 rounded-full ${
-                    cls.discipline === "gi"
-                      ? "bg-gi-500"
-                      : cls.discipline === "nogi"
-                        ? "bg-nogi-500"
-                        : "bg-wrestling-500"
-                  }`}
-                />
-                <div className="flex-1">
-                  <div className="text-sm text-mat-200">
-                    {cls.title ||
-                      `${cls.discipline === "nogi" ? "No-Gi" : cls.discipline.charAt(0).toUpperCase() + cls.discipline.slice(1)} Class`}
-                  </div>
-                  <div className="text-xs text-mat-500 mt-0.5">
-                    {new Date(cls.date).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}{" "}
-                    &middot; {cls.techniques.length} techniques
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }

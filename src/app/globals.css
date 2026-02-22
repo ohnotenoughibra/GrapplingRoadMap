@@ -134,4 +134,37 @@
   .streak-flame {
     animation: flicker 1.5s ease-in-out infinite;
   }
+
+  /* Animate-in utilities for smooth transitions */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideInFromBottom {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .animate-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  .fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  .slide-in-from-bottom {
+    animation: slideInFromBottom 0.2s ease-out;
+  }
+
+  /* Pulse dot for live indicators */
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .animate-pulse-dot {
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  /* Priority alert borders */
+  .border-l-red-500 { border-left-color: #ef4444; }
+  .border-l-yellow-500 { border-left-color: #eab308; }
+  .border-l-gi-500 { border-left-color: #3b82f6; }
 }
