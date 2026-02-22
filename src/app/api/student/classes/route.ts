@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -7,11 +8,8 @@ export async function GET(request: NextRequest) {
   try {
     const discipline = request.nextUrl.searchParams.get("discipline") || "all";
 
-    const student = await prisma.user.findFirst({
-      where: { role: "student" },
-    });
-
-    const studentId = student?.id;
+    const currentUser = await getCurrentUser();
+    const studentId = currentUser?.id;
 
     const where =
       discipline === "all" ? {} : { discipline };

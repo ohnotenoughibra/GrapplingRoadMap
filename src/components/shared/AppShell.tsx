@@ -64,7 +64,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
               <div className="font-semibold text-sm text-mat-100 leading-none">
                 The Mat
               </div>
-              <div className="text-[9px] text-mat-500 uppercase tracking-wider">
+              <div className="text-[10px] text-mat-500 uppercase tracking-wider">
                 {role === "coach" ? "Coach" : "Student"}
               </div>
             </div>
@@ -146,7 +146,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
       {moreOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
 
           {/* Sheet */}
           <div
@@ -231,6 +231,8 @@ export default function AppShell({ role, items, children }: AppShellProps) {
           {overflowItems.length > 0 && (
             <button
               onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              aria-label="More navigation options"
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2.5 min-h-[56px] transition-colors ${
                 moreOpen || isOverflowActive
                   ? "text-gi-400"

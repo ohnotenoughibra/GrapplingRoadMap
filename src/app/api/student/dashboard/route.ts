@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,11 @@ const EMPTY_DASHBOARD = {
 
 export async function GET() {
   try {
-    const student = await prisma.user.findFirst({
-      where: { role: "student" },
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return NextResponse.json(EMPTY_DASHBOARD);
+
+    const student = await prisma.user.findUnique({
+      where: { id: currentUser.id },
       include: {
         attendances: {
           include: {

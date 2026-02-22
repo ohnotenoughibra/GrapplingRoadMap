@@ -7,15 +7,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-
-    if (user) {
-      userId = user.id;
-    } else {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ error: "No user" }, { status: 401 });
-      userId = student.id;
-    }
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const { challengeId } = await request.json();
 
@@ -24,9 +16,9 @@ export async function POST(request: NextRequest) {
     }
 
     const participant = await prisma.challengeParticipant.upsert({
-      where: { challengeId_userId: { challengeId, userId } },
+      where: { challengeId_userId: { challengeId, userId: user.id } },
       update: {},
-      create: { challengeId, userId },
+      create: { challengeId, userId: user.id },
     });
 
     return NextResponse.json(participant, { status: 201 });

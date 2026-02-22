@@ -168,6 +168,7 @@ export default function JourneyPage() {
       {completedMilestones.length > 0 && (
         <button
           onClick={() => setShowCompleted(!showCompleted)}
+          aria-expanded={showCompleted}
           className="w-full flex items-center justify-between p-3 rounded-xl bg-green-500/5 border border-green-500/10 mb-4 transition-colors"
         >
           <div className="flex items-center gap-2">
@@ -283,7 +284,7 @@ export default function JourneyPage() {
                       level === "drilling" ? "bg-yellow-500" :
                       level === "sparring" ? "bg-gi-500" : "bg-green-500"
                     }`} />
-                    <span className="text-[9px] text-mat-600">{SKILL_LEVEL_CONFIG[level].label}</span>
+                    <span className="text-[10px] text-mat-600">{SKILL_LEVEL_CONFIG[level].label}</span>
                   </span>
                 ))}
               </div>

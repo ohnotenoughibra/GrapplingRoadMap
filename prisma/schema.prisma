@@ -42,6 +42,18 @@ model User {
   sparringLogs         SparringLog[]
   dailyMissions        DailyMission[]
   academyMemberships   AcademyMember[]
+  passwordResetToken   PasswordResetToken?
+}
+
+// ─── Password Reset Tokens ──────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   // SHA-256 hash of the raw token (never store raw)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique // one active token per user
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // ─── Technique Taxonomy ──────────────────────────────────────────────

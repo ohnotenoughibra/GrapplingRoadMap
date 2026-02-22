@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -21,19 +22,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+
     const body = await request.json();
     const { type, content } = body;
-
-    let user = await prisma.user.findFirst({ where: { role: "student" } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          name: "Student",
-          email: "student@rootscollective.com",
-          role: "student",
-        },
-      });
-    }
 
     const post = await prisma.feedPost.create({
       data: {

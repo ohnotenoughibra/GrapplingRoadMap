@@ -7,18 +7,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-
-    if (user) {
-      userId = user.id;
-    } else {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ recommendations: [] });
-      userId = student.id;
-    }
+    if (!user) return NextResponse.json({ recommendations: [] });
 
     const student = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: user.id },
       include: {
         skillProgress: { include: { technique: { include: { position: true } } } },
         attendances: {

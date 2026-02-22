@@ -40,6 +40,14 @@
     }
   }
 
+  /* Focus-visible ring for keyboard navigation */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-gi-500/60;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
   /* Custom scrollbar — desktop only */
   @media (pointer: fine) {
     ::-webkit-scrollbar {
@@ -167,4 +175,13 @@
   .border-l-red-500 { border-left-color: #ef4444; }
   .border-l-yellow-500 { border-left-color: #eab308; }
   .border-l-gi-500 { border-left-color: #3b82f6; }
+
+  /* Scrollbar hide — for horizontal scroll areas */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

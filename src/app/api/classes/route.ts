@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,8 @@ export async function GET() {
       orderBy: { date: "desc" },
       include: {
         techniques: { include: { technique: { include: { position: true } } } },
-        attendees: { include: { user: true } },
-        coach: true,
+        attendees: { include: { user: { select: { id: true, name: true, email: true, beltRank: true } } } },
+        coach: { select: { id: true, name: true, email: true } },
       },
     });
 
@@ -25,15 +26,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { date, discipline, title, notes, techniqueIds, attendeeIds } = body;
 
-    let coach = await prisma.user.findFirst({ where: { role: "coach" } });
-    if (!coach) {
-      coach = await prisma.user.create({
-        data: {
-          name: "Coach",
-          email: "coach@rootscollective.com",
-          role: "coach",
-        },
-      });
+    const coach = await getCurrentUser();
+    if (!coach || (coach.role !== "coach" && coach.role !== "admin")) {
+      return NextResponse.json({ error: "Coach access required" }, { status: 403 });
     }
 
     const classSession = await prisma.classSession.create({
@@ -58,21 +53,22 @@ export async function POST(request: NextRequest) {
       },
       include: {
         techniques: { include: { technique: true } },
-        attendees: { include: { user: true } },
+        attendees: { include: { user: { select: { id: true, name: true, email: true, beltRank: true } } } },
       },
     });
 
-    // Auto-update student skill progress for attendees
+    // Auto-expose attendees to class techniques (batched in a single transaction)
     if (attendeeIds?.length && techniqueIds?.length) {
-      for (const studentId of attendeeIds as string[]) {
-        for (const techId of techniqueIds as string[]) {
-          await prisma.studentSkill.upsert({
+      const upserts = (attendeeIds as string[]).flatMap((studentId) =>
+        (techniqueIds as string[]).map((techId) =>
+          prisma.studentSkill.upsert({
             where: { userId_techniqueId: { userId: studentId, techniqueId: techId } },
             update: { updatedAt: new Date() },
             create: { userId: studentId, techniqueId: techId, level: "exposed" },
-          });
-        }
-      }
+          })
+        )
+      );
+      await prisma.$transaction(upserts);
     }
 
     return NextResponse.json(classSession, { status: 201 });

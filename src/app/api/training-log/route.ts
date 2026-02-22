@@ -7,18 +7,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-
-    if (user) {
-      userId = user.id;
-    } else {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ logs: [] });
-      userId = student.id;
-    }
+    if (!user) return NextResponse.json({ logs: [] });
 
     const logs = await prisma.trainingLog.findMany({
-      where: { userId },
+      where: { userId: user.id },
       orderBy: { date: "desc" },
       take: 50,
     });
@@ -32,15 +24,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-
-    if (user) {
-      userId = user.id;
-    } else {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ error: "No user" }, { status: 401 });
-      userId = student.id;
-    }
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const { title, content, mood, energy, tags } = await request.json();
 
@@ -50,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const log = await prisma.trainingLog.create({
       data: {
-        userId,
+        userId: user.id,
         title: title || null,
         content,
         mood: mood || null,
