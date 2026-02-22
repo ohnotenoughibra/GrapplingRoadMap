@@ -1,14 +1,14 @@
+import { Resend } from "resend";
+
 /**
- * Email utility — pluggable transport layer.
+ * Email transport — Resend in production, console in development.
  *
- * Currently: logs to console (development mode).
- * To use in production: replace sendEmail with your provider
- * (Resend, SendGrid, AWS SES, etc.) — the interface stays the same.
+ * Required env var for production:
+ *   RESEND_API_KEY — get one at https://resend.com/api-keys
  *
- * Example with Resend:
- *   import { Resend } from "resend";
- *   const resend = new Resend(process.env.RESEND_API_KEY);
- *   await resend.emails.send({ from, to, subject, html });
+ * Optional:
+ *   EMAIL_FROM — sender address (default: "The Mat <onboarding@resend.dev>")
+ *                Use resend.dev domain until you verify your own domain in Resend.
  */
 
 interface EmailPayload {
@@ -18,21 +18,30 @@ interface EmailPayload {
   html: string;
 }
 
-export async function sendEmail(payload: EmailPayload): Promise<boolean> {
-  const { to, subject, text } = payload;
+const FROM_ADDRESS = process.env.EMAIL_FROM || "The Mat <onboarding@resend.dev>";
 
-  // ── Production: uncomment and configure your provider ──
-  // if (process.env.RESEND_API_KEY) {
-  //   const { Resend } = await import("resend");
-  //   const resend = new Resend(process.env.RESEND_API_KEY);
-  //   await resend.emails.send({
-  //     from: process.env.EMAIL_FROM || "The Mat <noreply@themat.app>",
-  //     to,
-  //     subject,
-  //     html: payload.html,
-  //   });
-  //   return true;
-  // }
+export async function sendEmail(payload: EmailPayload): Promise<boolean> {
+  const { to, subject, text, html } = payload;
+
+  // ── Production: send via Resend ──
+  if (process.env.RESEND_API_KEY) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      subject,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("[email] Resend error:", error);
+      return false;
+    }
+
+    return true;
+  }
 
   // ── Development: console output ──
   console.log("\n══════════════════════════════════════════");
@@ -40,6 +49,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   console.log(`   Subject: ${subject}`);
   console.log(`   ${text}`);
   console.log("══════════════════════════════════════════\n");
+  console.warn("[email] No RESEND_API_KEY set — email logged to console only. Set RESEND_API_KEY in your environment to send real emails.");
 
   return true;
 }
@@ -52,7 +62,7 @@ export function buildPasswordResetEmail(resetUrl: string) {
     subject: "Reset your password — The Mat",
     text: `Reset your password by visiting this link (expires in 1 hour):\n\n${resetUrl}\n\nIf you didn't request this, ignore this email.`,
     html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; background-color: #0f172a;">
         <div style="text-align: center; margin-bottom: 32px;">
           <div style="display: inline-block; width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #f97316, #ef4444); line-height: 40px; color: white; font-weight: bold; font-size: 18px;">M</div>
         </div>

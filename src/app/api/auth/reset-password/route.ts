@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       .update(token)
       .digest("hex");
 
-    const resetToken = await (prisma as any).passwordResetToken?.findUnique?.({
+    const resetToken = await prisma.passwordResetToken.findUnique({
       where: { userId: user.id },
     });
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Check expiry
     if (new Date() > new Date(resetToken.expiresAt)) {
       // Clean up expired token
-      await (prisma as any).passwordResetToken?.delete?.({
+      await prisma.passwordResetToken.delete({
         where: { id: resetToken.id },
       }).catch(() => {});
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // All checks passed — update the password and delete the token
+    // All checks passed — update the password and delete the token atomically
     const passwordHash = await bcrypt.hash(password, 12);
 
     await prisma.$transaction([
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         where: { id: user.id },
         data: { passwordHash },
       }),
-      (prisma as any).passwordResetToken.delete({
+      prisma.passwordResetToken.delete({
         where: { id: resetToken.id },
       }),
     ]);
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       message: "Password reset successfully. You can now sign in.",
     });
   } catch (error) {
-    console.error("Reset password error:", error);
+    console.error("[reset-password] Error:", error);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }
