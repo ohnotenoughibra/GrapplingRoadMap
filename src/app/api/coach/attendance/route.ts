@@ -40,62 +40,59 @@ export async function POST(request: NextRequest) {
     // Remove existing attendance for this class
     await prisma.classAttendance.deleteMany({ where: { classSessionId } });
 
-    // Create new attendance records
-    const records = await Promise.all(
-      studentIds.map((userId: string) =>
-        prisma.classAttendance.create({
-          data: { classSessionId, userId, checkedIn: true },
-        })
-      )
-    );
+    // Create new attendance records in bulk
+    await prisma.classAttendance.createMany({
+      data: studentIds.map((userId: string) => ({ classSessionId, userId, checkedIn: true })),
+    });
 
-    // Update streaks and XP for each student
-    const classSession = await prisma.classSession.findUnique({ where: { id: classSessionId } });
+    // Fetch all students and class techniques in one query each
+    const [students, classTechniques] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: studentIds } },
+        select: { id: true, currentStreak: true, longestStreak: true, lastTrainedAt: true },
+      }),
+      prisma.classTechnique.findMany({ where: { classSessionId } }),
+    ]);
 
-    for (const userId of studentIds) {
-      const student = await prisma.user.findUnique({ where: { id: userId } });
-      if (!student) continue;
+    // Update streaks, XP, and auto-expose techniques
+    const now = new Date();
+    const operations = [];
 
-      const now = new Date();
+    for (const student of students) {
       const lastTrained = student.lastTrainedAt;
-      let newStreak = student.currentStreak;
-
+      let newStreak = 1;
       if (lastTrained) {
         const diffDays = Math.floor((now.getTime() - lastTrained.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 2) {
-          newStreak = student.currentStreak + 1;
-        } else {
-          newStreak = 1;
-        }
-      } else {
-        newStreak = 1;
+        if (diffDays <= 2) newStreak = student.currentStreak + 1;
       }
 
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          lastTrainedAt: now,
-          currentStreak: newStreak,
-          longestStreak: Math.max(newStreak, student.longestStreak),
-          xp: { increment: 25 },
-        },
-      });
+      operations.push(
+        prisma.user.update({
+          where: { id: student.id },
+          data: {
+            lastTrainedAt: now,
+            currentStreak: newStreak,
+            longestStreak: Math.max(newStreak, student.longestStreak),
+            xp: { increment: 25 },
+          },
+        })
+      );
 
-      // Auto-expose students to techniques taught in class
-      const classTechniques = await prisma.classTechnique.findMany({
-        where: { classSessionId },
-      });
-
+      // Auto-expose to class techniques
       for (const ct of classTechniques) {
-        await prisma.studentSkill.upsert({
-          where: { userId_techniqueId: { userId, techniqueId: ct.techniqueId } },
-          update: {},  // Don't downgrade existing level
-          create: { userId, techniqueId: ct.techniqueId, level: "exposed" },
-        });
+        operations.push(
+          prisma.studentSkill.upsert({
+            where: { userId_techniqueId: { userId: student.id, techniqueId: ct.techniqueId } },
+            update: {},
+            create: { userId: student.id, techniqueId: ct.techniqueId, level: "exposed" },
+          })
+        );
       }
     }
 
-    return NextResponse.json({ success: true, count: records.length });
+    await prisma.$transaction(operations);
+
+    return NextResponse.json({ success: true, count: studentIds.length });
   } catch (e) {
     return NextResponse.json({ error: "Failed to mark attendance" }, { status: 500 });
   }

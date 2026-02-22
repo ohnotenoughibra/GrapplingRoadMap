@@ -7,17 +7,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-    if (!user) {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ skills: [] });
-      userId = student.id;
-    } else {
-      userId = user.id;
-    }
+    if (!user) return NextResponse.json({ skills: [] });
 
     const skills = await prisma.studentSkill.findMany({
-      where: { userId },
+      where: { userId: user.id },
       select: { techniqueId: true, level: true },
     });
 
@@ -30,12 +23,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      // Fallback for demo: use first student
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ error: "No user" }, { status: 401 });
-      return handleSkillUpdate(student.id, request);
-    }
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     return handleSkillUpdate(user.id, request);
   } catch {
     return NextResponse.json({ error: "Failed to update skill" }, { status: 500 });

@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const student = await prisma.user.findFirst({
-      where: { role: "student" },
-      include: {
-        badges: { include: { badge: true } },
-      },
-    });
+    const currentUser = await getCurrentUser();
+
+    const student = currentUser
+      ? await prisma.user.findUnique({
+          where: { id: currentUser.id },
+          include: { badges: { include: { badge: true } } },
+        })
+      : null;
 
     const earnedBadgeIds = new Set(
       (student?.badges ?? []).map((ub) => ub.badgeId)

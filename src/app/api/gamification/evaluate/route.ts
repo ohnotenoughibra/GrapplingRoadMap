@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const sweepCount = user.skillProgress.filter((s) => s.level === "proficient" && s.technique.category === "sweep").length;
     const passCount = user.skillProgress.filter((s) => s.level === "proficient" && s.technique.category === "pass").length;
     const escapeCount = user.skillProgress.filter((s) => s.level === "proficient" && s.technique.category === "escape").length;
-    const legLockCount = user.skillProgress.filter((s) => s.level === "proficient" && s.technique.name.toLowerCase().includes("heel") || s.technique.name.toLowerCase().includes("knee") && s.technique.category === "submission").length;
+    const legLockCount = user.skillProgress.filter((s) => s.level === "proficient" && (s.technique.name.toLowerCase().includes("heel") || s.technique.name.toLowerCase().includes("knee")) && s.technique.category === "submission").length;
     const postCount = user.feedPosts.length;
     const checkinCount = user.feedPosts.filter((p) => p.type === "checkin").length;
 

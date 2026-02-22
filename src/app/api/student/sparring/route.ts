@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) {
-      const user = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!user) return NextResponse.json({ logs: [] });
-      const logs = await prisma.sparringLog.findMany({
-        where: { userId: user.id },
-        orderBy: { date: "desc" },
-        take: 50,
-      });
-      return NextResponse.json({ logs });
-    }
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ logs: [] });
 
     const logs = await prisma.sparringLog.findMany({
-      where: { userId },
+      where: { userId: user.id },
       orderBy: { date: "desc" },
       take: 50,
     });
@@ -30,19 +22,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, partner, rounds, duration, notes, submissions, caughtIn, positions, mood, date } = body;
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
-    let studentId = userId;
-    if (!studentId) {
-      const user = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!user) return NextResponse.json({ error: "No user found" }, { status: 404 });
-      studentId = user.id;
-    }
+    const body = await request.json();
+    const { partner, rounds, duration, notes, submissions, caughtIn, positions, mood, date } = body;
 
     const log = await prisma.sparringLog.create({
       data: {
-        userId: studentId,
+        userId: user.id,
         date: date ? new Date(date) : new Date(),
         partner,
         rounds: rounds || 1,

@@ -7,18 +7,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-
-    if (user) {
-      userId = user.id;
-    } else {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ competitions: [] });
-      userId = student.id;
-    }
+    if (!user) return NextResponse.json({ competitions: [] });
 
     const competitions = await prisma.competition.findMany({
-      where: { userId },
+      where: { userId: user.id },
       orderBy: { date: "desc" },
     });
 
@@ -31,15 +23,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    let userId: string;
-
-    if (user) {
-      userId = user.id;
-    } else {
-      const student = await prisma.user.findFirst({ where: { role: "student" } });
-      if (!student) return NextResponse.json({ error: "No user" }, { status: 401 });
-      userId = student.id;
-    }
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
     const body = await request.json();
     const { name, date, location, discipline, weightClass, result, wins, losses, submissionBy, submittedBy, notes, gamePlan } = body;
@@ -50,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const comp = await prisma.competition.create({
       data: {
-        userId,
+        userId: user.id,
         name,
         date: new Date(date),
         location: location || null,
