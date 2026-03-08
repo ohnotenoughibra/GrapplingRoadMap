@@ -1,17 +1,17 @@
 import { POSITIONS, TECHNIQUES } from "@/lib/data/taxonomy";
-import ConstellationMap from "@/components/ConstellationMap";
+import PositionMap from "@/components/PositionMap";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Grappling Universe — The Mat",
+  title: "Position Map — The Mat",
   description:
-    "Explore the entire grappling universe. Interactive 3D map of positions, techniques, and transitions.",
+    "Interactive 2D map of grappling positions, techniques, and transitions. Explore the entire grappling universe.",
 };
 
 export default function MapPage() {
   return (
-    <main className="w-screen h-screen overflow-hidden bg-[#050510]">
-      <ConstellationMap positions={POSITIONS} techniques={TECHNIQUES} />
+    <main className="w-screen h-screen overflow-hidden bg-mat-50 dark:bg-mat-950">
+      <PositionMap positions={POSITIONS} techniques={TECHNIQUES} />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, Fragment } from "react";
 import dynamic from "next/dynamic";
 import * as THREE from "three";
 import {
@@ -108,6 +108,16 @@ function DetailPanel({
   onNodeSelect,
 }: DetailPanelProps) {
   const isPosition = node.type === "position";
+  const [expandedTechIds, setExpandedTechIds] = useState<Set<string>>(new Set());
+
+  const toggleTechExpand = useCallback((id: string) => {
+    setExpandedTechIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   // Find related data
   const childTechniques = useMemo(() => {
@@ -306,22 +316,74 @@ function DetailPanel({
                         </span>
                       </div>
                       <div className="space-y-0.5 ml-4">
-                        {techs.map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => onNodeSelect(t.id)}
-                            className={`w-full text-left px-3 py-1.5 rounded-lg text-sm ${textPrimary} ${hoverBg} transition-colors flex items-center justify-between`}
-                          >
-                            <span className="truncate">{t.name}</span>
-                            {t.difficulty && (
-                              <span
-                                className={`text-[10px] ml-2 flex-shrink-0 ${textTertiary}`}
-                              >
-                                {t.difficulty}
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                        {techs.map((t) => {
+                          const isExpTech = expandedTechIds.has(t.id);
+                          return (
+                            <Fragment key={t.id}>
+                              <div className={`rounded-lg ${isExpTech ? (lightMode ? "bg-slate-50" : "bg-white/5") : ""}`}>
+                                <div className="flex items-center">
+                                  {/* Expand toggle */}
+                                  {(t.summary || t.tips?.length || t.commonMistakes?.length) ? (
+                                    <button
+                                      onClick={() => toggleTechExpand(t.id)}
+                                      className={`px-1.5 py-1.5 flex-shrink-0 ${textTertiary} hover:${textSecondary} transition-colors`}
+                                    >
+                                      <svg className={`w-3 h-3 transition-transform duration-150 ${isExpTech ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                      </svg>
+                                    </button>
+                                  ) : (
+                                    <span className="w-6" />
+                                  )}
+                                  {/* Technique name — click navigates */}
+                                  <button
+                                    onClick={() => onNodeSelect(t.id)}
+                                    className={`flex-1 text-left px-2 py-1.5 text-sm ${textPrimary} ${hoverBg} transition-colors truncate`}
+                                  >
+                                    {t.name}
+                                  </button>
+                                  {t.difficulty && (
+                                    <span className={`text-[10px] mr-3 flex-shrink-0 ${textTertiary}`}>
+                                      {t.difficulty}
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Expanded inline detail */}
+                                {isExpTech && (
+                                  <div className="px-3 pb-2.5 pt-0.5 ml-6 space-y-2">
+                                    {t.summary && (
+                                      <p className={`text-xs leading-relaxed ${textSecondary}`}>{t.summary}</p>
+                                    )}
+                                    {t.tips && t.tips.length > 0 && (
+                                      <div className="space-y-1">
+                                        {t.tips.map((tip, i) => (
+                                          <div key={i} className="flex items-start gap-1.5">
+                                            <svg className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span className={`text-xs leading-snug ${textSecondary}`}>{tip}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {t.commonMistakes && t.commonMistakes.length > 0 && (
+                                      <div className="space-y-1">
+                                        {t.commonMistakes.map((m, i) => (
+                                          <div key={i} className="flex items-start gap-1.5">
+                                            <svg className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                            <span className={`text-xs leading-snug ${textSecondary}`}>{m}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </Fragment>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -378,6 +440,54 @@ function DetailPanel({
           {/* ─── Technique Detail ─── */}
           {!isPosition && (
             <>
+              {/* Tips */}
+              {node.tips && node.tips.length > 0 && (
+                <div>
+                  <h3 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${textTertiary}`}>
+                    <span className="inline-flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      Tips
+                    </span>
+                  </h3>
+                  <div className="space-y-1.5">
+                    {node.tips.map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className={`text-sm leading-snug ${textSecondary}`}>{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Common Mistakes */}
+              {node.commonMistakes && node.commonMistakes.length > 0 && (
+                <div>
+                  <h3 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${textTertiary}`}>
+                    <span className="inline-flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      Common Mistakes
+                    </span>
+                  </h3>
+                  <div className="space-y-1.5">
+                    {node.commonMistakes.map((mistake, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span className={`text-sm leading-snug ${textSecondary}`}>{mistake}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Parent position */}
               {parentPosition && (
                 <div>

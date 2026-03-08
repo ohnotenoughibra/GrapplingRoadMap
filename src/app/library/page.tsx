@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useCallback } from "react";
+import { Suspense, useMemo, useCallback, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { POSITIONS, TECHNIQUES } from "@/lib/data/taxonomy";
 import type { PositionSeed, TechniqueSeed } from "@/lib/data/taxonomy";
@@ -38,6 +38,132 @@ const TECHNIQUES_BY_POSITION = TECHNIQUES.reduce<Record<string, TechniqueSeed[]>
   },
   {}
 );
+
+// ─── Technique Card (expandable tips & mistakes) ─────────────────────
+
+function TechniqueCard({
+  technique: t,
+  getPositionName,
+  onTransition,
+}: {
+  technique: TechniqueSeed;
+  getPositionName: (slug: string) => string;
+  onTransition: (slug: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasTipsOrMistakes = (t.tips?.length ?? 0) > 0 || (t.commonMistakes?.length ?? 0) > 0;
+
+  return (
+    <div className="rounded-lg bg-mat-800/30 border border-mat-800/50 overflow-hidden">
+      {/* Header */}
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <h5 className="text-sm font-medium text-mat-100">{t.name}</h5>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${DIFFICULTY_COLORS[t.difficulty].bg} ${DIFFICULTY_COLORS[t.difficulty].text} border ${DIFFICULTY_COLORS[t.difficulty].border}`}
+            >
+              {DIFFICULTY_LABELS[t.difficulty]}
+            </span>
+            {t.discipline !== "all" ? (
+              <span
+                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${DISCIPLINE_CONFIG[t.discipline].bg} ${DISCIPLINE_CONFIG[t.discipline].text} border ${DISCIPLINE_CONFIG[t.discipline].border}`}
+              >
+                {DISCIPLINE_CONFIG[t.discipline].label}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-mat-700/50 text-mat-400 border border-mat-600/30">
+                All
+              </span>
+            )}
+          </div>
+        </div>
+        {t.description && (
+          <p className="text-xs text-mat-400 mb-1.5">{t.description}</p>
+        )}
+        <div className="flex items-center gap-3">
+          {t.transitionTarget && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTransition(t.transitionTarget!);
+              }}
+              className="inline-flex items-center gap-1 text-xs text-gi-400 hover:text-gi-300 transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              {getPositionName(t.transitionTarget)}
+            </button>
+          )}
+          {hasTipsOrMistakes && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="inline-flex items-center gap-1 text-xs text-mat-400 hover:text-mat-200 transition-colors ml-auto"
+            >
+              <svg
+                className={`w-3.5 h-3.5 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              Tips &amp; Details
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded section */}
+      {expanded && hasTipsOrMistakes && (
+        <div className="px-3 pb-3 pt-0 space-y-3 border-t border-mat-700/30">
+          {/* Tips */}
+          {t.tips && t.tips.length > 0 && (
+            <div className="pt-2.5">
+              <h6 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Tips
+              </h6>
+              <div className="space-y-1 ml-0.5">
+                {t.tips.map((tip, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <svg className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs text-mat-300 leading-snug">{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Common Mistakes */}
+          {t.commonMistakes && t.commonMistakes.length > 0 && (
+            <div className={t.tips?.length ? "" : "pt-2.5"}>
+              <h6 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Common Mistakes
+              </h6>
+              <div className="space-y-1 ml-0.5">
+                {t.commonMistakes.map((mistake, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <svg className="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="text-xs text-mat-300 leading-snug">{mistake}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Library Content (uses searchParams) ─────────────────────────────
 
@@ -372,55 +498,12 @@ function LibraryContent() {
                             </h4>
                             <div className="space-y-2">
                               {techs.map((t) => (
-                                <div
+                                <TechniqueCard
                                   key={t.slug}
-                                  className="p-3 rounded-lg bg-mat-800/30 border border-mat-800/50"
-                                >
-                                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                                    <h5 className="text-sm font-medium text-mat-100">
-                                      {t.name}
-                                    </h5>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      {/* Difficulty badge */}
-                                      <span
-                                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${DIFFICULTY_COLORS[t.difficulty].bg} ${DIFFICULTY_COLORS[t.difficulty].text} border ${DIFFICULTY_COLORS[t.difficulty].border}`}
-                                      >
-                                        {DIFFICULTY_LABELS[t.difficulty]}
-                                      </span>
-                                      {/* Discipline badge */}
-                                      {t.discipline !== "all" ? (
-                                        <span
-                                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${DISCIPLINE_CONFIG[t.discipline].bg} ${DISCIPLINE_CONFIG[t.discipline].text} border ${DISCIPLINE_CONFIG[t.discipline].border}`}
-                                        >
-                                          {DISCIPLINE_CONFIG[t.discipline].label}
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-mat-700/50 text-mat-400 border border-mat-600/30">
-                                          All
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {t.description && (
-                                    <p className="text-xs text-mat-400 mb-1.5">
-                                      {t.description}
-                                    </p>
-                                  )}
-                                  {t.transitionTarget && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setParam("position", t.transitionTarget!);
-                                      }}
-                                      className="inline-flex items-center gap-1 text-xs text-gi-400 hover:text-gi-300 transition-colors"
-                                    >
-                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                      </svg>
-                                      {getPositionName(t.transitionTarget)}
-                                    </button>
-                                  )}
-                                </div>
+                                  technique={t}
+                                  getPositionName={getPositionName}
+                                  onTransition={(slug) => setParam("position", slug)}
+                                />
                               ))}
                             </div>
                           </div>
