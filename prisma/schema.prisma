@@ -71,15 +71,21 @@ model Position {
 }
 
 model Technique {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  discipline  String   // "gi" | "nogi" | "wrestling" | "all"
-  category    String   // "submission" | "sweep" | "pass" | "escape" | "takedown" | "throw" | "transition" | "control" | "defense"
-  difficulty  String   @default("fundamental") // "fundamental" | "intermediate" | "advanced"
-  videoUrl    String?
-  sortOrder   Int      @default(0)
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  description      String?
+  summary          String?
+  discipline       String   // "gi" | "nogi" | "wrestling" | "all"
+  category         String   // "submission" | "sweep" | "pass" | "escape" | "takedown" | "throw" | "transition" | "control" | "defense"
+  difficulty       String   @default("fundamental") // "fundamental" | "intermediate" | "advanced"
+  videoUrl         String?
+  sortOrder        Int      @default(0)
+  tips             String[] @default([])
+  commonMistakes   String[] @default([])
+  transitionTarget String?
+  isCustom         Boolean  @default(false)
+  createdBy        String?  // userId of who added it
 
   position   Position @relation(fields: [positionId], references: [id])
   positionId String
