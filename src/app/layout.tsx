@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import SessionProvider from "@/components/shared/SessionProvider";
+import ThemeProvider from "@/components/shared/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,12 +30,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        {/* Inline script to prevent flash of wrong theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else if(!t&&window.matchMedia('(prefers-color-scheme:light)').matches){document.documentElement.classList.remove('dark')}}catch(e){}})()`,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-mat-950 font-sans">
-        <SessionProvider>{children}</SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -202,7 +202,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6">
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mat-900 via-mat-950 to-black -z-10" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mat-900 via-mat-950 to-mat-950 -z-10" />
       <div className="w-full max-w-sm mx-auto">
         <Suspense fallback={
           <div className="text-center">

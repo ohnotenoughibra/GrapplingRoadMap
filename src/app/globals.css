@@ -4,6 +4,38 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/* ─── Theme: mat color scale swaps in light/dark ─────────────── */
+/* RGB triplets for Tailwind opacity modifier support */
+/* Light mode: high numbers = light backgrounds, low numbers = dark text */
+:root {
+  --mat-50: 2 6 23;
+  --mat-100: 15 23 42;
+  --mat-200: 30 41 59;
+  --mat-300: 51 65 85;
+  --mat-400: 71 85 105;
+  --mat-500: 100 116 139;
+  --mat-600: 148 163 184;
+  --mat-700: 203 213 225;
+  --mat-800: 226 232 240;
+  --mat-900: 241 245 249;
+  --mat-950: 248 250 252;
+}
+
+/* Dark mode: high numbers = dark backgrounds (original scale) */
+.dark {
+  --mat-50: 248 250 252;
+  --mat-100: 241 245 249;
+  --mat-200: 226 232 240;
+  --mat-300: 203 213 225;
+  --mat-400: 148 163 184;
+  --mat-500: 100 116 139;
+  --mat-600: 71 85 105;
+  --mat-700: 51 65 85;
+  --mat-800: 30 41 59;
+  --mat-900: 15 23 42;
+  --mat-950: 2 6 23;
+}
+
 @layer base {
   html {
     @apply antialiased;
@@ -60,7 +92,7 @@
       @apply bg-transparent;
     }
     ::-webkit-scrollbar-thumb {
-      @apply bg-mat-700 rounded-full;
+      @apply rounded-full bg-mat-700;
     }
     ::-webkit-scrollbar-thumb:hover {
       @apply bg-mat-600;

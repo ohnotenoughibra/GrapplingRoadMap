@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "./ThemeProvider";
 
 export interface NavItem {
   label: string;
@@ -25,6 +26,7 @@ export default function AppShell({ role, items, children }: AppShellProps) {
   const { data: session } = useSession();
   const userName = session?.user?.name || (role === "coach" ? "Coach" : "Student");
 
+  const { theme, toggle: toggleTheme } = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -69,12 +71,25 @@ export default function AppShell({ role, items, children }: AppShellProps) {
               </div>
             </div>
           </Link>
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="text-xs text-mat-500 hover:text-mat-300 transition-colors"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg text-mat-400 hover:text-mat-200 hover:bg-mat-800/50 transition-colors"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
+            </button>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="text-xs text-mat-500 hover:text-mat-300 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -128,12 +143,26 @@ export default function AppShell({ role, items, children }: AppShellProps) {
               <div className="text-xs text-mat-500 capitalize">{role}</div>
             </div>
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="mt-3 text-xs text-mat-500 hover:text-mat-300 transition-colors"
-          >
-            Sign out
-          </button>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 text-xs text-mat-500 hover:text-mat-300 transition-colors"
+            >
+              {theme === "dark" ? (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
+              {theme === "dark" ? "Light" : "Dark"}
+            </button>
+            <span className="text-mat-700">|</span>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="text-xs text-mat-500 hover:text-mat-300 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </aside>
 
