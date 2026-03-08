@@ -14,7 +14,7 @@ export default async function Home() {
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6">
       {/* Background texture */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mat-900 via-mat-950 to-black -z-10" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mat-900 via-mat-950 to-mat-950 -z-10" />
 
       {/* Hero */}
       <div className="text-center w-full max-w-sm mx-auto">

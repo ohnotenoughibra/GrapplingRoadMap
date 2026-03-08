@@ -18,13 +18,21 @@ export default function LoginPage() {
     setLoading(true);
 
     const result = await signIn("credentials", {
-      email,
+      email: email.trim().toLowerCase(),
       password,
       redirect: false,
     });
 
+    console.log("[login] signIn result:", JSON.stringify(result));
+
     if (result?.error) {
       setError("Invalid email or password");
+      setLoading(false);
+      return;
+    }
+
+    if (!result?.ok) {
+      setError("Sign in failed — please try again");
       setLoading(false);
       return;
     }
@@ -40,7 +48,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6">
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mat-900 via-mat-950 to-black -z-10" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mat-900 via-mat-950 to-mat-950 -z-10" />
 
       <div className="w-full max-w-sm mx-auto">
         <div className="text-center mb-8">

@@ -11,7 +11,10 @@ export type TechniqueCategory =
   | "throw"
   | "transition"
   | "control"
-  | "defense";
+  | "defense"
+  | "retention"
+  | "entry"
+  | "scramble";
 
 export type Difficulty = "fundamental" | "intermediate" | "advanced";
 
@@ -116,6 +119,99 @@ export const CATEGORY_LABELS: Record<TechniqueCategory, string> = {
   transition: "Transitions",
   control: "Control",
   defense: "Defense",
+  retention: "Retention",
+  entry: "Entries",
+  scramble: "Scrambles",
+};
+
+export const CATEGORY_CONFIG: Record<
+  TechniqueCategory,
+  { label: string; color: string; bg: string; border: string; text: string }
+> = {
+  submission: {
+    label: "Submissions",
+    color: "red",
+    bg: "bg-red-500/10",
+    border: "border-red-500/30",
+    text: "text-red-400",
+  },
+  sweep: {
+    label: "Sweeps",
+    color: "green",
+    bg: "bg-green-500/10",
+    border: "border-green-500/30",
+    text: "text-green-400",
+  },
+  pass: {
+    label: "Passes",
+    color: "purple",
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/30",
+    text: "text-purple-400",
+  },
+  escape: {
+    label: "Escapes",
+    color: "yellow",
+    bg: "bg-yellow-500/10",
+    border: "border-yellow-500/30",
+    text: "text-yellow-400",
+  },
+  takedown: {
+    label: "Takedowns",
+    color: "amber",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+    text: "text-amber-400",
+  },
+  throw: {
+    label: "Throws",
+    color: "lime",
+    bg: "bg-lime-500/10",
+    border: "border-lime-500/30",
+    text: "text-lime-400",
+  },
+  transition: {
+    label: "Transitions",
+    color: "cyan",
+    bg: "bg-cyan-500/10",
+    border: "border-cyan-500/30",
+    text: "text-cyan-400",
+  },
+  control: {
+    label: "Control",
+    color: "indigo",
+    bg: "bg-indigo-500/10",
+    border: "border-indigo-500/30",
+    text: "text-indigo-400",
+  },
+  defense: {
+    label: "Defense",
+    color: "slate",
+    bg: "bg-slate-500/10",
+    border: "border-slate-500/30",
+    text: "text-slate-400",
+  },
+  retention: {
+    label: "Retention",
+    color: "blue",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+    text: "text-blue-400",
+  },
+  entry: {
+    label: "Entries",
+    color: "teal",
+    bg: "bg-teal-500/10",
+    border: "border-teal-500/30",
+    text: "text-teal-400",
+  },
+  scramble: {
+    label: "Scrambles",
+    color: "orange",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/30",
+    text: "text-orange-400",
+  },
 };
 
 // ─── Heatmap Types ───────────────────────────────────────────────────
