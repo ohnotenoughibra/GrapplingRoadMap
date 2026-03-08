@@ -29,6 +29,12 @@ export default function MapPage() {
         >
           Library
         </Link>
+        <Link
+          href="/cla"
+          className="text-xs text-mat-400 hover:text-mat-200 transition-colors"
+        >
+          CLA
+        </Link>
       </nav>
       <PositionMap positions={POSITIONS} techniques={TECHNIQUES} />
     </main>

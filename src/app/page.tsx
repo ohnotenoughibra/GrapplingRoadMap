@@ -112,6 +112,12 @@ export default async function Home() {
         >
           Map
         </Link>
+        <Link
+          href="/cla"
+          className="text-mat-500 hover:text-mat-300 transition-colors"
+        >
+          CLA Corner
+        </Link>
       </div>
 
       {/* Footer */}
