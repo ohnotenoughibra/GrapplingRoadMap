@@ -194,7 +194,14 @@
     animation: fadeIn 0.2s ease-out;
   }
   .slide-in-from-bottom {
-    animation: slideInFromBottom 0.2s ease-out;
+    animation: slideInFromBottom 0.3s ease-out;
+  }
+  @keyframes slideInFromRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .slide-in-from-right {
+    animation: slideInFromRight 0.3s ease-out;
   }
 
   /* Pulse dot for live indicators */
