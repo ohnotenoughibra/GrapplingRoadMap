@@ -687,22 +687,13 @@ function SVGMap({
 
           const fillOpacity = isHovered ? 0.25 : isConnected ? 0.15 : 0.08;
           const strokeOpacity = isHovered ? 0.9 : isConnected ? 0.6 : 0.3;
-          const scale = isHovered ? 1.08 : 1;
+          const scale = isHovered ? 1.06 : 1;
           const r = NODE_RADIUS;
 
           return (
             <g
               key={pos.slug}
               className="cursor-pointer"
-              style={{
-                transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
-                transformOrigin: `${pos.x}px ${pos.y}px`,
-                transition: "transform 150ms ease-out, opacity 200ms ease",
-                opacity: dimmed ? 0.25 : 1,
-              }}
-              onMouseEnter={() => onHover(pos.slug)}
-              onMouseLeave={() => onHover(null)}
-              onClick={() => onSelect(pos.slug)}
               role="button"
               tabIndex={0}
               aria-label={`${pos.name} - ${pos.techniqueCount} techniques. ${zoneColor.label} zone.`}
@@ -711,6 +702,26 @@ function SVGMap({
                   e.preventDefault();
                   onSelect(pos.slug);
                 }
+              }}
+            >
+              {/* Invisible stable hit area — doesn't scale, prevents flicker */}
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={r + 8}
+                fill="transparent"
+                stroke="none"
+                onMouseEnter={() => onHover(pos.slug)}
+                onMouseLeave={() => onHover(null)}
+                onClick={() => onSelect(pos.slug)}
+              />
+            <g
+              style={{
+                transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+                transformOrigin: `${pos.x}px ${pos.y}px`,
+                transition: "transform 150ms ease-out, opacity 200ms ease",
+                opacity: dimmed ? 0.25 : 1,
+                pointerEvents: "none",
               }}
             >
               {/* Glow ring for search matches */}
@@ -803,6 +814,7 @@ function SVGMap({
                 {pos.techniqueCount}
               </text>
             </g>
+            </g>
           );
         })}
       </g>
@@ -885,8 +897,8 @@ export default function PositionMap({ positions, techniques }: PositionMapProps)
       </div>
 
       {/* Desktop: SVG map + detail panel */}
-      <div className="hidden md:flex flex-1 overflow-hidden">
-        {/* Left: Map or detail */}
+      <div className="hidden md:flex flex-1 overflow-hidden relative">
+        {/* Left: Map or detail — always full width, sidebar overlays */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top bar */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-mat-200 dark:border-mat-800/50 bg-mat-50/80 dark:bg-mat-950/80 backdrop-blur-sm shrink-0">
@@ -986,9 +998,9 @@ export default function PositionMap({ positions, techniques }: PositionMapProps)
           ) : null}
         </div>
 
-        {/* Right sidebar: tooltip on hover (only in overview) */}
+        {/* Right sidebar: tooltip on hover (absolute overlay, doesn't affect SVG layout) */}
         {view.mode === "overview" && hoveredSlug && (
-          <div className="w-72 border-l border-mat-200 dark:border-mat-800/50 bg-mat-50 dark:bg-mat-900/50 p-4 overflow-y-auto shrink-0 animate-in fade-in slide-in-from-right-2 duration-150">
+          <div className="absolute top-0 right-0 bottom-0 w-72 border-l border-mat-200 dark:border-mat-800/50 bg-mat-50/95 dark:bg-mat-900/95 backdrop-blur-sm p-4 overflow-y-auto z-20 pointer-events-none">
             {(() => {
               const pos = posMap.get(hoveredSlug);
               if (!pos) return null;
