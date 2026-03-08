@@ -34,6 +34,7 @@ model User {
   badges               UserBadge[]
   coachNotes           CoachNote[]          @relation("NotesForStudent")
   coachNotesWritten    CoachNote[]          @relation("NotesFromCoach")
+  trainingCycles       TrainingCycle[]       @relation("CoachCycles")
   trainingLogs         TrainingLog[]
   beltPromotions       BeltPromotion[]      @relation("StudentPromotions")
   promotionsGiven      BeltPromotion[]      @relation("CoachPromotions")
@@ -132,6 +133,13 @@ model ClassSession {
 
   templateId String?
   template   ClassTemplate? @relation(fields: [templateId], references: [id])
+
+  cycleId       String?
+  cycle         TrainingCycle? @relation(fields: [cycleId], references: [id])
+  scheduledDate DateTime?
+  duration      Int?
+  weekNumber    Int?
+  dayNumber     Int?
 
   techniques ClassTechnique[]
   attendees  ClassAttendance[]
@@ -407,4 +415,25 @@ model UserBadge {
   earnedAt DateTime @default(now())
 
   @@unique([userId, badgeId])
+}
+
+// ─── Training Cycles ────────────────────────────────────────────────
+
+model TrainingCycle {
+  id             String         @id @default(cuid())
+  coach          User           @relation("CoachCycles", fields: [coachId], references: [id])
+  coachId        String
+  name           String
+  weeks          Int
+  classesPerWeek Int
+  classDuration  Int            // minutes
+  focus          String         // "competition" | "curriculum" | "fundamentals" | "custom"
+  source         String?        // "comp-gaps" | "heatmap-holes" | "custom"
+  sourceData     String?        // JSON
+  startDate      DateTime
+  endDate        DateTime
+  status         String         @default("active")
+  notes          String?
+  createdAt      DateTime       @default(now())
+  sessions       ClassSession[]
 }

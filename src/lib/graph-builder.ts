@@ -16,6 +16,8 @@ export interface GraphNode {
   positionId?: string;
   description?: string;
   summary?: string;
+  tips?: string[];
+  commonMistakes?: string[];
   transitionTarget?: string;
 }
 
@@ -156,6 +158,8 @@ export function buildGraphData(
       positionId: tech.positionSlug,
       summary: tech.summary || "",
       description: tech.description || "",
+      tips: tech.tips,
+      commonMistakes: tech.commonMistakes,
       transitionTarget: tech.transitionTarget,
     });
 
@@ -197,4 +201,115 @@ export function buildGraphData(
   return { nodes, links };
 }
 
-export { CATEGORY_COLORS };
+export { CATEGORY_COLORS, TRANSITION_MAP };
+
+// ─── 2D Position Map Layout ────────────────────────────────────────
+
+export type PositionZone = "standing" | "guard" | "top" | "leglock" | "other";
+
+export interface PositionLayout {
+  slug: string;
+  name: string;
+  description: string;
+  zone: PositionZone;
+  x: number; // 0-1200 range
+  y: number; // 0-900 range
+  techniqueCount: number;
+  techniques: TechniqueSeed[];
+  transitions: string[]; // slugs of connected positions
+}
+
+const ZONE_ASSIGNMENTS: Record<string, PositionZone> = {
+  standing: "standing",
+  "front-headlock": "standing",
+  "body-lock": "standing",
+  "wrestling-mat": "standing",
+  "closed-guard": "guard",
+  "open-guard": "guard",
+  "half-guard": "guard",
+  "butterfly-guard": "guard",
+  "de-la-riva": "guard",
+  "x-guard": "guard",
+  "guard-top": "guard",
+  "side-control": "top",
+  mount: "top",
+  "knee-on-belly": "top",
+  "north-south": "top",
+  "back-control": "top",
+  crucifix: "top",
+  "fifty-fifty": "leglock",
+  "leg-entanglements": "leglock",
+  saddle: "leglock",
+  truck: "leglock",
+  turtle: "other",
+};
+
+// Hand-tuned coordinates for semantic layout (viewBox 0 0 1200 900)
+const POSITION_COORDS: Record<string, { x: number; y: number }> = {
+  // Standing zone (top)
+  standing: { x: 600, y: 70 },
+  "front-headlock": { x: 360, y: 130 },
+  "body-lock": { x: 840, y: 130 },
+  "wrestling-mat": { x: 160, y: 70 },
+
+  // Guard zone (middle)
+  "closed-guard": { x: 200, y: 330 },
+  "open-guard": { x: 420, y: 290 },
+  "butterfly-guard": { x: 600, y: 350 },
+  "half-guard": { x: 160, y: 450 },
+  "de-la-riva": { x: 380, y: 440 },
+  "x-guard": { x: 560, y: 480 },
+  "guard-top": { x: 830, y: 330 },
+
+  // Top/control zone (right)
+  "side-control": { x: 920, y: 440 },
+  mount: { x: 1060, y: 340 },
+  "knee-on-belly": { x: 1060, y: 500 },
+  "north-south": { x: 780, y: 530 },
+  "back-control": { x: 1000, y: 620 },
+  crucifix: { x: 840, y: 700 },
+
+  // Leg lock zone (bottom)
+  "fifty-fifty": { x: 280, y: 640 },
+  "leg-entanglements": { x: 460, y: 700 },
+  saddle: { x: 600, y: 760 },
+  truck: { x: 700, y: 830 },
+
+  // Other
+  turtle: { x: 500, y: 180 },
+};
+
+export function getPositionLayout(
+  positions: PositionSeed[],
+  techniques: TechniqueSeed[]
+): PositionLayout[] {
+  const techByPosition = new Map<string, TechniqueSeed[]>();
+  for (const t of techniques) {
+    const list = techByPosition.get(t.positionSlug) || [];
+    list.push(t);
+    techByPosition.set(t.positionSlug, list);
+  }
+
+  const positionSlugs = new Set(positions.map((p) => p.slug));
+
+  return positions.map((pos) => {
+    const coords = POSITION_COORDS[pos.slug] || { x: 600, y: 450 };
+    const zone = ZONE_ASSIGNMENTS[pos.slug] || "other";
+    const posTechniques = techByPosition.get(pos.slug) || [];
+    const transitions = (TRANSITION_MAP[pos.slug] || []).filter((s) =>
+      positionSlugs.has(s)
+    );
+
+    return {
+      slug: pos.slug,
+      name: pos.name,
+      description: pos.description,
+      zone,
+      x: coords.x,
+      y: coords.y,
+      techniqueCount: posTechniques.length,
+      techniques: posTechniques,
+      transitions,
+    };
+  });
+}

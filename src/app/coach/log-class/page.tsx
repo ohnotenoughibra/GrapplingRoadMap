@@ -37,12 +37,24 @@ interface Template {
   _count: { classes: number };
 }
 
+interface ActiveCycle {
+  id: string;
+  name: string;
+  classesPerWeek: number;
+  classDuration: number;
+  focus: string;
+  sourceData: { topics?: string[] } | null;
+  status: string;
+}
+
 function LogClassForm() {
   const searchParams = useSearchParams();
   const [discipline, setDiscipline] = useState<Discipline>("nogi");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
+  const [duration, setDuration] = useState<number | "">("");
+  const [selectedCycleId, setSelectedCycleId] = useState<string>("");
   const [selectedTechniques, setSelectedTechniques] = useState<string[]>([]);
   const [techniqueNotes, setTechniqueNotes] = useState<Record<string, string>>({});
   const [techniques, setTechniques] = useState<Technique[]>([]);
@@ -56,8 +68,9 @@ function LogClassForm() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
+  const [activeCycles, setActiveCycles] = useState<ActiveCycle[]>([]);
 
-  // Fetch techniques, students, and templates
+  // Fetch techniques, students, templates, and active cycles
   useEffect(() => {
     fetch("/api/techniques")
       .then((r) => r.json())
@@ -75,9 +88,39 @@ function LogClassForm() {
       .then((r) => r.json())
       .then((data) => setTemplates(data.templates || []))
       .catch(() => {});
-  }, []);
+    fetch("/api/coach/cycles")
+      .then((r) => r.json())
+      .then((data) => {
+        const cycles = (data.cycles || []).filter((c: ActiveCycle) => c.status === "active");
+        setActiveCycles(cycles);
+        // Auto-select if cycleId is in URL params
+        const paramCycleId = searchParams.get("cycleId");
+        if (paramCycleId && cycles.some((c: ActiveCycle) => c.id === paramCycleId)) {
+          setSelectedCycleId(paramCycleId);
+          const cycle = cycles.find((c: ActiveCycle) => c.id === paramCycleId);
+          if (cycle) setDuration(cycle.classDuration);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pre-fill from URL params (from dashboard suggestion or plan-class)
+  // When cycle selection changes, pre-fill duration
+  const handleCycleChange = (cycleId: string) => {
+    setSelectedCycleId(cycleId);
+    if (cycleId) {
+      const cycle = activeCycles.find((c) => c.id === cycleId);
+      if (cycle) {
+        setDuration(cycle.classDuration);
+      }
+    }
+  };
+
+  // Get suggested focus areas from selected cycle
+  const cycleSuggestedTopics = selectedCycleId
+    ? activeCycles.find((c) => c.id === selectedCycleId)?.sourceData?.topics || []
+    : [];
+
+  // Pre-fill from URL params (from dashboard suggestion, plan-class, or calendar)
   useEffect(() => {
     if (prefilled || techniques.length === 0) return;
 
@@ -85,6 +128,9 @@ function LogClassForm() {
     const paramTitle = searchParams.get("title");
     const paramTechniques = searchParams.get("techniques");
     const paramNotes = searchParams.get("notes") || searchParams.get("warmup");
+    const paramDate = searchParams.get("date");
+
+    if (paramDate) setDate(paramDate);
 
     if (paramDisc || paramTitle || paramTechniques) {
       if (paramDisc && ["gi", "nogi", "wrestling"].includes(paramDisc)) {
@@ -170,6 +216,8 @@ function LogClassForm() {
           discipline,
           title: title || undefined,
           notes: notes || undefined,
+          duration: duration || undefined,
+          cycleId: selectedCycleId || undefined,
           techniques: selectedTechniques.map((id) => ({
             id,
             notes: techniqueNotes[id] || undefined,
@@ -253,9 +301,59 @@ function LogClassForm() {
         </div>
       )}
 
+      {/* Active cycle selector */}
+      {activeCycles.length > 0 && (
+        <div className="card p-4 lg:p-6 mb-4 lg:mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
+              Training Cycle
+            </h2>
+            {selectedCycleId && (
+              <button
+                onClick={() => { setSelectedCycleId(""); setDuration(""); }}
+                className="text-xs text-mat-500 hover:text-mat-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <select
+            value={selectedCycleId}
+            onChange={(e) => handleCycleChange(e.target.value)}
+            className="w-full px-3 py-3 lg:py-2 rounded-xl lg:rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-gi-500/50"
+          >
+            <option value="">No cycle (standalone class)</option>
+            {activeCycles.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Suggested focus areas from cycle */}
+          {cycleSuggestedTopics.length > 0 && (
+            <div className="mt-3">
+              <div className="text-[10px] font-semibold text-mat-500 uppercase tracking-wider mb-1.5">
+                Suggested Focus Areas
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {cycleSuggestedTopics.map((topic) => (
+                  <span
+                    key={topic}
+                    className="px-2 py-1 rounded-md text-xs bg-gi-500/10 text-gi-400 border border-gi-500/20"
+                  >
+                    {topic.replace(/-/g, " ")}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Class details */}
       <div className="card p-4 lg:p-6 mb-4 lg:mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-xs font-medium text-mat-400 mb-1.5">
               Date
@@ -277,6 +375,18 @@ function LogClassForm() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Lasso Guard Attacks"
               className="w-full px-3 py-2 rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-sm placeholder:text-mat-600 focus:outline-none focus:ring-2 focus:ring-gi-500/50 focus:border-gi-500/50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-mat-400 mb-1.5">
+              Duration (min)
+            </label>
+            <input
+              type="number"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : "")}
+              placeholder="e.g., 90"
+              className="w-full px-3 py-3 lg:py-2 rounded-xl lg:rounded-lg bg-mat-800 border border-mat-700/50 text-mat-100 text-base lg:text-sm placeholder:text-mat-600 focus:outline-none focus:ring-2 focus:ring-gi-500/50 focus:border-gi-500/50"
             />
           </div>
         </div>
