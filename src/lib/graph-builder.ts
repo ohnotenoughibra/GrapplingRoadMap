@@ -14,6 +14,9 @@ export interface GraphNode {
   val: number;
   color: string;
   positionId?: string;
+  description?: string;
+  summary?: string;
+  transitionTarget?: string;
 }
 
 export interface GraphLink {
@@ -128,6 +131,7 @@ export function buildGraphData(
       type: "position",
       val: 30,
       color: POSITION_COLOR,
+      description: pos.description || "",
     });
   }
 
@@ -150,6 +154,9 @@ export function buildGraphData(
       val: 5,
       color,
       positionId: tech.positionSlug,
+      summary: tech.summary || "",
+      description: tech.description || "",
+      transitionTarget: tech.transitionTarget,
     });
 
     // Contains link: position -> technique

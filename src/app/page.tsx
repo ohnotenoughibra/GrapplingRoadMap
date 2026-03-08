@@ -98,6 +98,22 @@ export default async function Home() {
         </div>
       </div>
 
+      {/* Public pages */}
+      <div className="mt-8 flex gap-4 text-sm">
+        <Link
+          href="/library"
+          className="text-mat-500 hover:text-mat-300 transition-colors"
+        >
+          Library
+        </Link>
+        <Link
+          href="/map"
+          className="text-mat-500 hover:text-mat-300 transition-colors"
+        >
+          Map
+        </Link>
+      </div>
+
       {/* Footer */}
       <div className="mt-auto pt-6 pb-8 text-xs text-mat-600">
         The journey is the destination.

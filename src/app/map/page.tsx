@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function MapPage() {
   return (
-    <main className="w-screen h-screen overflow-hidden bg-[#0a0a0a]">
+    <main className="w-screen h-screen overflow-hidden bg-[#050510]">
       <ConstellationMap positions={POSITIONS} techniques={TECHNIQUES} />
     </main>
   );
