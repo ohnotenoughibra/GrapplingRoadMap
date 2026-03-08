@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "@/components/shared/ThemeProvider";
 
-export default function LibraryLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function CLALayout({ children }: { children: React.ReactNode }) {
   const { theme, toggle: toggleTheme } = useTheme();
 
   return (
@@ -23,33 +19,23 @@ export default function LibraryLayout({
               The Mat
             </Link>
             <span className="text-mat-600">/</span>
-            <h1 className="text-sm font-medium text-mat-200">Library</h1>
+            <h1 className="text-sm font-medium text-mat-200">CLA Corner</h1>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/cla"
-              className="btn-ghost text-xs flex items-center gap-1.5"
-            >
+            <Link href="/library" className="btn-ghost text-xs flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              CLA
+              Library
             </Link>
-            <Link
-              href="/map"
-              className="btn-ghost text-xs flex items-center gap-1.5"
-            >
+            <Link href="/map" className="btn-ghost text-xs flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Map
             </Link>
-            <button
-              onClick={toggleTheme}
-              className="btn-ghost p-2"
-              aria-label="Toggle theme"
-            >
+            <button onClick={toggleTheme} className="btn-ghost p-2" aria-label="Toggle theme">
               {theme === "dark" ? (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -65,9 +51,7 @@ export default function LibraryLayout({
       </header>
 
       {/* Content */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        {children}
-      </main>
+      <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
     </div>
   );
 }
