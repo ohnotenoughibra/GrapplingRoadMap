@@ -89,3 +89,54 @@ export async function GET(request: Request) {
     return NextResponse.json({ techniques: [], positions: [] });
   }
 }
+
+// POST: Add a new custom technique
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { name, positionSlug, category, discipline, difficulty, summary, tips, commonMistakes, transitionTarget } = body;
+
+    if (!name?.trim() || !positionSlug || !category || !discipline || !difficulty) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const position = await prisma.position.findUnique({ where: { slug: positionSlug } });
+    if (!position) {
+      return NextResponse.json({ error: `Position not found` }, { status: 404 });
+    }
+
+    const slug = `${positionSlug}-${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+
+    const existing = await prisma.technique.findUnique({ where: { slug } });
+    if (existing) {
+      return NextResponse.json({ error: "A technique with this name already exists for this position" }, { status: 409 });
+    }
+
+    const technique = await prisma.technique.create({
+      data: {
+        name: name.trim(),
+        slug,
+        positionId: position.id,
+        category,
+        discipline,
+        difficulty,
+        summary: summary?.trim() || null,
+        tips: Array.isArray(tips) ? tips.filter((t: string) => t.trim()) : [],
+        commonMistakes: Array.isArray(commonMistakes) ? commonMistakes.filter((m: string) => m.trim()) : [],
+        transitionTarget: transitionTarget || null,
+        isCustom: true,
+        createdBy: (session.user as any).id,
+      },
+      include: { position: { select: { slug: true, name: true } } },
+    });
+
+    return NextResponse.json({ technique }, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Failed to create technique" }, { status: 500 });
+  }
+}
