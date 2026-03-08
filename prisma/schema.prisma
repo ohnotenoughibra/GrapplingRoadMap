@@ -23,7 +23,8 @@ model User {
   currentStreak Int       @default(0)
   longestStreak Int       @default(0)
   lastTrainedAt DateTime?
-  beltRank      String    @default("white") // "white" | "blue" | "purple" | "brown" | "black"
+  beltRank              String    @default("white") // "white" | "blue" | "purple" | "brown" | "black"
+  preferredDiscipline   String    @default("all")   // "gi" | "nogi" | "both" | "all"
 
   // Relations
   classesAsCoach       ClassSession[]       @relation("CoachClasses")
@@ -144,6 +145,7 @@ model ClassTechnique {
   classSessionId String
   technique      Technique    @relation(fields: [techniqueId], references: [id])
   techniqueId    String
+  notes          String?      // Coach struggle notes: "students struggled with entry", "timing was off"
 
   @@unique([classSessionId, techniqueId])
 }
@@ -259,6 +261,22 @@ model Competition {
   submittedBy  String?  // technique lost to
   notes        String?
   gamePlan     String?
+  createdAt    DateTime @default(now())
+}
+
+// ─── Competition Gap Analysis ─────────────────────────────────────────
+
+model CompetitionGap {
+  id           String   @id @default(cuid())
+  coachId      String
+  date         DateTime // competition date
+  name         String?  // competition name
+  notes        String?  // free-text notes
+
+  // JSON array of gap entries:
+  // [{ positionSlug: string, categories: string[], notes?: string }]
+  gaps         String   // JSON
+
   createdAt    DateTime @default(now())
 }
 

@@ -5,11 +5,21 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const discipline = request.nextUrl.searchParams.get("discipline") || "all";
+    const discipline = request.nextUrl.searchParams.get("discipline") || "nogi";
+    const daysParam = request.nextUrl.searchParams.get("days");
+    const days = daysParam ? parseInt(daysParam, 10) : 90;
 
     const positions = await prisma.position.findMany({
       orderBy: { sortOrder: "asc" },
     });
+
+    // Build date filter
+    const dateFilter: { gte?: Date } = {};
+    if (days > 0) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      dateFilter.gte = cutoff;
+    }
 
     const classTechniques = await prisma.classTechnique.findMany({
       include: {
@@ -17,6 +27,17 @@ export async function GET(request: NextRequest) {
           include: { position: true },
         },
         classSession: true,
+      },
+      ...(dateFilter.gte
+        ? { where: { classSession: { date: { gte: dateFilter.gte } } } }
+        : {}),
+    });
+
+    // Count total distinct classes in the period
+    const totalClasses = await prisma.classSession.count({
+      where: {
+        ...(dateFilter.gte ? { date: { gte: dateFilter.gte } } : {}),
+        ...(discipline !== "all" ? { discipline } : {}),
       },
     });
 
@@ -54,8 +75,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ positions, heatmap, maxCount });
+    return NextResponse.json({ positions, heatmap, maxCount, totalClasses });
   } catch {
-    return NextResponse.json({ positions: [], heatmap: {}, maxCount: 0 });
+    return NextResponse.json({ positions: [], heatmap: {}, maxCount: 0, totalClasses: 0 });
   }
 }

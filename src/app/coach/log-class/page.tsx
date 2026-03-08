@@ -44,6 +44,7 @@ function LogClassForm() {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedTechniques, setSelectedTechniques] = useState<string[]>([]);
+  const [techniqueNotes, setTechniqueNotes] = useState<Record<string, string>>({});
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [filterPosition, setFilterPosition] = useState<string>("all");
@@ -108,6 +109,7 @@ function LogClassForm() {
     setTitle(template.name);
     if (template.notes) setNotes(template.notes);
     setSelectedTechniques(template.techniques.map((t) => t.technique.id));
+    setTechniqueNotes({});
     setShowTemplates(false);
   };
 
@@ -134,9 +136,25 @@ function LogClassForm() {
   );
 
   const toggleTechnique = (id: string) => {
-    setSelectedTechniques((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
+    setSelectedTechniques((prev) => {
+      if (prev.includes(id)) {
+        // Also clear notes when deselecting
+        setTechniqueNotes((n) => {
+          const updated = { ...n };
+          delete updated[id];
+          return updated;
+        });
+        return prev.filter((t) => t !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const updateTechniqueNote = (id: string, note: string) => {
+    setTechniqueNotes((prev) => ({
+      ...prev,
+      [id]: note,
+    }));
   };
 
   const handleSubmit = async () => {
@@ -152,7 +170,10 @@ function LogClassForm() {
           discipline,
           title: title || undefined,
           notes: notes || undefined,
-          techniqueIds: selectedTechniques,
+          techniques: selectedTechniques.map((id) => ({
+            id,
+            notes: techniqueNotes[id] || undefined,
+          })),
           attendeeIds: selectedStudents.length > 0 ? selectedStudents : undefined,
         }),
       });
@@ -160,6 +181,7 @@ function LogClassForm() {
       if (res.ok) {
         setSaved(true);
         setSelectedTechniques([]);
+        setTechniqueNotes({});
         setSelectedStudents([]);
         setTitle("");
         setNotes("");
@@ -347,7 +369,7 @@ function LogClassForm() {
       )}
 
       {/* Technique selection */}
-      <div className="card p-6">
+      <div className="card p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-mat-300 uppercase tracking-wider">
             Techniques Covered
@@ -380,64 +402,82 @@ function LogClassForm() {
           </select>
         </div>
 
-        {/* Selected techniques preview */}
+        {/* Selected techniques with struggle notes */}
         {selectedTechniques.length > 0 && (
           <div className="mb-4 p-3 rounded-lg bg-gi-500/5 border border-gi-500/10">
-            <div className="flex flex-wrap gap-2">
+            <div className="text-[10px] font-semibold text-mat-500 uppercase tracking-wider mb-2">
+              Selected &mdash; add struggle notes (optional)
+            </div>
+            <div className="space-y-2">
               {selectedTechniques.map((id) => {
                 const tech = techniques.find((t) => t.id === id);
-                return tech ? (
-                  <button
-                    key={id}
-                    onClick={() => toggleTechnique(id)}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gi-500/10 text-gi-400 text-xs hover:bg-gi-500/20 transition-colors"
-                  >
-                    {tech.name}
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                ) : null;
+                if (!tech) return null;
+                return (
+                  <div key={id} className="flex items-start gap-2">
+                    <button
+                      onClick={() => toggleTechnique(id)}
+                      className="flex-shrink-0 mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gi-500/10 text-gi-400 text-xs hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      {tech.name}
+                    </button>
+                    <input
+                      type="text"
+                      value={techniqueNotes[id] || ""}
+                      onChange={(e) => updateTechniqueNote(id, e.target.value)}
+                      placeholder="e.g., struggled with the entry, timing was off..."
+                      className="flex-1 px-2 py-1 rounded-md bg-mat-800/50 border border-mat-700/30 text-mat-200 text-xs placeholder:text-mat-600 focus:outline-none focus:ring-1 focus:ring-amber-500/40 focus:border-amber-500/40"
+                    />
+                  </div>
+                );
               })}
             </div>
           </div>
         )}
 
-        {/* Technique list */}
-        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+        {/* Technique grid */}
+        <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
           {Object.entries(grouped).map(([positionName, techs]) => (
             <div key={positionName}>
-              <div className="text-xs font-medium text-mat-500 uppercase tracking-wider mb-2 sticky top-0 bg-mat-900/90 backdrop-blur-sm py-1">
+              <div className="text-[10px] font-medium text-mat-500 uppercase tracking-wider mb-1.5 sticky top-0 bg-mat-900/90 backdrop-blur-sm py-1 z-10">
                 {positionName}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                 {techs.map((t) => {
                   const isSelected = selectedTechniques.includes(t.id);
+                  const hasNote = !!(techniqueNotes[t.id]?.trim());
                   return (
                     <button
                       key={t.id}
                       onClick={() => toggleTechnique(t.id)}
-                      className={`text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                      className={`text-left px-2 py-1.5 rounded-md text-xs transition-all duration-100 ${
                         isSelected
-                          ? "bg-gi-500/10 border border-gi-500/30 text-gi-400"
-                          : "bg-mat-800/30 border border-mat-800/30 text-mat-300 hover:bg-mat-800/50 hover:text-mat-200"
+                          ? "bg-gi-500/15 border border-gi-500/30 text-gi-400"
+                          : "bg-mat-800/20 border border-mat-800/20 text-mat-400 hover:bg-mat-800/40 hover:text-mat-200"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <div
-                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${
+                          className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
                             isSelected
                               ? "bg-gi-500 border-gi-500"
                               : "border-mat-600"
                           }`}
                         >
                           {isSelected && (
-                            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                            <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           )}
                         </div>
-                        <span className="truncate">{t.name}</span>
+                        <span className="truncate leading-tight">{t.name}</span>
+                        {hasNote && (
+                          <svg className="w-3 h-3 text-amber-400 flex-shrink-0 ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
                       </div>
                     </button>
                   );

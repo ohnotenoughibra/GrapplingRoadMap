@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import DisciplineToggle from "@/components/shared/DisciplineToggle";
 import type { Discipline, TechniqueCategory } from "@/types";
 import { CATEGORY_LABELS } from "@/types";
@@ -9,18 +10,27 @@ interface HeatmapData {
   positions: { id: string; name: string; slug: string }[];
   heatmap: Record<string, Record<string, { count: number; techniques: string[] }>>;
   maxCount: number;
+  totalClasses: number;
 }
 
+const DATE_RANGES = [
+  { label: "30 days", days: 30 },
+  { label: "90 days", days: 90 },
+  { label: "6 months", days: 180 },
+  { label: "All time", days: 0 },
+] as const;
+
 export default function HeatmapPage() {
-  const [discipline, setDiscipline] = useState<Discipline | "all">("all");
+  const [discipline, setDiscipline] = useState<Discipline | "all">("nogi");
+  const [days, setDays] = useState<number>(90);
   const [data, setData] = useState<HeatmapData | null>(null);
   const [expandedCell, setExpandedCell] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/heatmap?discipline=${discipline}`)
+    fetch(`/api/heatmap?discipline=${discipline}&days=${days}`)
       .then((r) => r.json())
       .then(setData);
-  }, [discipline]);
+  }, [discipline, days]);
 
   const categories: TechniqueCategory[] = [
     "submission", "sweep", "pass", "escape", "takedown", "throw", "transition", "control", "defense",
@@ -36,6 +46,11 @@ export default function HeatmapPage() {
     return "bg-emerald-500/50 border-emerald-400/30";
   };
 
+  const buildPlanLink = (posSlug: string, posName: string, cat: string) => {
+    const title = `${posName} ${CATEGORY_LABELS[cat as TechniqueCategory]}s`;
+    return `/coach/log-class?discipline=${discipline === "all" ? "nogi" : discipline}&title=${encodeURIComponent(title)}`;
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -44,9 +59,30 @@ export default function HeatmapPage() {
         <p className="text-mat-400 text-sm mt-1">
           Dark spots = blind spots. Tap to explore.
         </p>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <DisciplineToggle selected={discipline} onChange={setDiscipline} />
+          <div className="inline-flex rounded-lg bg-mat-800/50 border border-mat-700/30 p-1">
+            {DATE_RANGES.map((range) => (
+              <button
+                key={range.days}
+                onClick={() => setDays(range.days)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+                  days === range.days
+                    ? "bg-mat-700 text-mat-100"
+                    : "text-mat-400 hover:text-mat-200"
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
         </div>
+        {data && (
+          <div className="mt-2 text-xs text-mat-500">
+            {data.totalClasses} class{data.totalClasses !== 1 ? "es" : ""} logged
+            {days > 0 ? ` in the last ${days} days` : " (all time)"}
+          </div>
+        )}
       </div>
 
       {!data ? (
@@ -65,9 +101,7 @@ export default function HeatmapPage() {
             <span>More</span>
           </div>
 
-          {/* Mobile: Card-based per position. Desktop: table. */}
-
-          {/* Desktop table — hidden on mobile */}
+          {/* Desktop table -- hidden on mobile */}
           <div className="hidden lg:block card overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -92,6 +126,7 @@ export default function HeatmapPage() {
                       const cell = data.heatmap[pos.slug]?.[cat] ?? { count: 0, techniques: [] };
                       const cellKey = `${pos.slug}-${cat}`;
                       const isExpanded = expandedCell === cellKey;
+                      const isGap = cell.count === 0;
                       return (
                         <td key={cat} className="p-1.5">
                           <div
@@ -101,16 +136,31 @@ export default function HeatmapPage() {
                             <span className={`text-xs font-mono ${cell.count > 0 ? "text-emerald-400" : "text-mat-600"}`}>
                               {cell.count || "\u2014"}
                             </span>
-                            {isExpanded && cell.techniques.length > 0 && (
+                            {isExpanded && (
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 p-3 rounded-lg bg-mat-800 border border-mat-700/50 shadow-xl">
                                 <div className="text-xs font-medium text-mat-300 mb-1">
                                   {pos.name} / {CATEGORY_LABELS[cat]}
                                 </div>
-                                <div className="text-[10px] text-mat-400 space-y-0.5">
-                                  {cell.techniques.map((name) => (
-                                    <div key={name}>{name}</div>
-                                  ))}
-                                </div>
+                                {cell.techniques.length > 0 ? (
+                                  <div className="text-[10px] text-mat-400 space-y-0.5">
+                                    {cell.techniques.map((name) => (
+                                      <div key={name}>{name}</div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-[10px] text-mat-500 italic mb-2">
+                                    Not covered yet
+                                  </div>
+                                )}
+                                {isGap && (
+                                  <Link
+                                    href={buildPlanLink(pos.slug, pos.name, cat)}
+                                    className="mt-2 block text-center text-[10px] font-medium px-2 py-1 rounded bg-nogi-500/15 text-nogi-400 border border-nogi-500/20 hover:bg-nogi-500/25 transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Plan a class for this
+                                  </Link>
+                                )}
                               </div>
                             )}
                           </div>
@@ -128,6 +178,9 @@ export default function HeatmapPage() {
             {data.positions.map((pos) => {
               const activeCats = categories.filter(
                 (cat) => data.heatmap[pos.slug]?.[cat]?.count
+              );
+              const gapCats = categories.filter(
+                (cat) => !data.heatmap[pos.slug]?.[cat]?.count
               );
               const totalCount = activeCats.reduce(
                 (sum, cat) => sum + (data.heatmap[pos.slug]?.[cat]?.count ?? 0),
@@ -194,9 +247,9 @@ export default function HeatmapPage() {
                   )}
 
                   {/* Expanded details */}
-                  {isExpanded && activeCats.length > 0 && (
+                  {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-mat-800/50 space-y-2">
-                      {activeCats.map((cat) => {
+                      {activeCats.length > 0 && activeCats.map((cat) => {
                         const cell = data.heatmap[pos.slug]![cat]!;
                         return (
                           <div key={cat}>
@@ -216,6 +269,25 @@ export default function HeatmapPage() {
                           </div>
                         );
                       })}
+                      {gapCats.length > 0 && (
+                        <div className="pt-2">
+                          <div className="text-[10px] text-mat-500 uppercase tracking-wider mb-1.5">
+                            Gaps -- plan a class
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {gapCats.slice(0, 4).map((cat) => (
+                              <Link
+                                key={cat}
+                                href={buildPlanLink(pos.slug, pos.name, cat)}
+                                className="text-[11px] px-2 py-1 rounded-md bg-nogi-500/10 text-nogi-400 border border-nogi-500/15 hover:bg-nogi-500/20 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {CATEGORY_LABELS[cat]}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </button>
@@ -229,20 +301,22 @@ export default function HeatmapPage() {
               Coverage Gaps
             </h2>
             <p className="text-xs text-mat-500 mb-3">
-              Positions and categories not yet covered.
+              Positions and categories not yet covered{days > 0 ? ` in the last ${days} days` : ""}.
+              Tap a gap to plan a class.
             </p>
             <div className="flex flex-wrap gap-1.5">
               {data.positions.map((pos) =>
                 categories
                   .filter((cat) => !data.heatmap[pos.slug]?.[cat]?.count)
-                  .slice(0, 3) // Show max 3 gaps per position on mobile to avoid overflow
+                  .slice(0, 3) // Show max 3 gaps per position to avoid overflow
                   .map((cat) => (
-                    <span
+                    <Link
                       key={`${pos.slug}-${cat}`}
-                      className="px-2 py-1 rounded-md bg-wrestling-500/5 border border-wrestling-500/10 text-wrestling-400 text-[11px]"
+                      href={buildPlanLink(pos.slug, pos.name, cat)}
+                      className="px-2 py-1 rounded-md bg-wrestling-500/5 border border-wrestling-500/10 text-wrestling-400 text-[11px] hover:bg-wrestling-500/10 transition-colors"
                     >
-                      {pos.name} — {CATEGORY_LABELS[cat]}
-                    </span>
+                      {pos.name} -- {CATEGORY_LABELS[cat]}
+                    </Link>
                   ))
               )}
             </div>

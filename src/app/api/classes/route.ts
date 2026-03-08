@@ -24,12 +24,21 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, discipline, title, notes, techniqueIds, attendeeIds } = body;
+    const { date, discipline, title, notes, techniqueIds, techniques: techniquesInput, attendeeIds } = body;
 
     const coach = await getCurrentUser();
     if (!coach || (coach.role !== "coach" && coach.role !== "admin")) {
       return NextResponse.json({ error: "Coach access required" }, { status: 403 });
     }
+
+    // Support both formats:
+    // Old: techniqueIds: string[]
+    // New: techniques: { id: string, notes?: string }[]
+    const techniqueEntries: { id: string; notes?: string }[] = techniquesInput
+      ? (techniquesInput as { id: string; notes?: string }[])
+      : (techniqueIds as string[]).map((id: string) => ({ id }));
+
+    const resolvedTechniqueIds = techniqueEntries.map((t) => t.id);
 
     const classSession = await prisma.classSession.create({
       data: {
@@ -39,8 +48,9 @@ export async function POST(request: NextRequest) {
         notes: notes || null,
         coachId: coach.id,
         techniques: {
-          create: techniqueIds.map((id: string) => ({
-            techniqueId: id,
+          create: techniqueEntries.map((t) => ({
+            techniqueId: t.id,
+            notes: t.notes || null,
           })),
         },
         attendees: attendeeIds?.length
@@ -89,8 +99,8 @@ export async function POST(request: NextRequest) {
         );
 
         // Auto-expose to class techniques
-        if (techniqueIds?.length) {
-          for (const techId of techniqueIds as string[]) {
+        if (resolvedTechniqueIds.length) {
+          for (const techId of resolvedTechniqueIds) {
             operations.push(
               prisma.studentSkill.upsert({
                 where: { userId_techniqueId: { userId: student.id, techniqueId: techId } },

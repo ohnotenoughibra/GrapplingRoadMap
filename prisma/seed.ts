@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { POSITIONS, TECHNIQUES, MILESTONES, BADGES } from "../src/lib/data/taxonomy";
 import {
   CURRICULUM,
@@ -130,17 +131,19 @@ async function main() {
 
   // ─── Users ────────────────────────────────────────────────────
   console.log("Creating users...");
+  const passwordHash = await bcrypt.hash("roots123", 10);
+
   const coach = await prisma.user.create({
-    data: { name: "Coach Ibrahim", email: "coach@rootscollective.com", role: "coach", beltRank: "black" },
+    data: { name: "Coach Ibrahim", email: "coach@rootscollective.com", role: "coach", beltRank: "black", passwordHash, preferredDiscipline: "nogi" },
   });
 
   const students = await Promise.all([
-    prisma.user.create({ data: { name: "Alex Rivera", email: "alex@rootscollective.com", role: "student", beltRank: "blue", xp: 1850, currentStreak: 5, longestStreak: 21, lastTrainedAt: daysAgo(0) } }),
-    prisma.user.create({ data: { name: "Sam Chen", email: "sam@rootscollective.com", role: "student", beltRank: "purple", xp: 4200, currentStreak: 12, longestStreak: 45, lastTrainedAt: daysAgo(0) } }),
-    prisma.user.create({ data: { name: "Jordan Taylor", email: "jordan@rootscollective.com", role: "student", beltRank: "white", xp: 320, currentStreak: 3, longestStreak: 7, lastTrainedAt: daysAgo(1) } }),
-    prisma.user.create({ data: { name: "Morgan Kim", email: "morgan@rootscollective.com", role: "student", beltRank: "brown", xp: 8500, currentStreak: 0, longestStreak: 60, lastTrainedAt: daysAgo(5) } }),
-    prisma.user.create({ data: { name: "Casey Martinez", email: "casey@rootscollective.com", role: "student", beltRank: "white", xp: 150, currentStreak: 1, longestStreak: 4, lastTrainedAt: daysAgo(2) } }),
-    prisma.user.create({ data: { name: "Riley Brooks", email: "riley@rootscollective.com", role: "student", beltRank: "blue", xp: 2100, currentStreak: 8, longestStreak: 30, lastTrainedAt: daysAgo(0) } }),
+    prisma.user.create({ data: { name: "Alex Rivera", email: "alex@rootscollective.com", role: "student", beltRank: "blue", xp: 1850, currentStreak: 5, longestStreak: 21, lastTrainedAt: daysAgo(0), passwordHash } }),
+    prisma.user.create({ data: { name: "Sam Chen", email: "sam@rootscollective.com", role: "student", beltRank: "purple", xp: 4200, currentStreak: 12, longestStreak: 45, lastTrainedAt: daysAgo(0), passwordHash } }),
+    prisma.user.create({ data: { name: "Jordan Taylor", email: "jordan@rootscollective.com", role: "student", beltRank: "white", xp: 320, currentStreak: 3, longestStreak: 7, lastTrainedAt: daysAgo(1), passwordHash } }),
+    prisma.user.create({ data: { name: "Morgan Kim", email: "morgan@rootscollective.com", role: "student", beltRank: "brown", xp: 8500, currentStreak: 0, longestStreak: 60, lastTrainedAt: daysAgo(5), passwordHash } }),
+    prisma.user.create({ data: { name: "Casey Martinez", email: "casey@rootscollective.com", role: "student", beltRank: "white", xp: 150, currentStreak: 1, longestStreak: 4, lastTrainedAt: daysAgo(2), passwordHash } }),
+    prisma.user.create({ data: { name: "Riley Brooks", email: "riley@rootscollective.com", role: "student", beltRank: "blue", xp: 2100, currentStreak: 8, longestStreak: 30, lastTrainedAt: daysAgo(0), passwordHash } }),
   ]);
 
   await prisma.academyMember.create({ data: { academyId: academy.id, userId: coach.id, role: "owner" } });
